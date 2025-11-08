@@ -3,6 +3,7 @@ import App from "../App";
 import Register from "../pages/auth/Register"
 import Login from "../pages/auth/Login";
 import Home from "../pages/home/Home"
+import ImageUploader from "../components/common/ImageUploader";
 const router = createBrowserRouter([
   {
     path: "/",
@@ -19,6 +20,10 @@ const router = createBrowserRouter([
   {
     path: "/chat",
     element: <App />,
+  },
+  {
+    path: "/upload",
+    element: <ImageUploader />,
   },
 ]);
 
