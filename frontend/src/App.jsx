@@ -7,7 +7,7 @@ import ChatList from './pages/chat/ChatList';
 function App() {
   return (
 
-    <div className="h-screen w-screen overflow-hidden bg-blue-100 flex flex-row">
+    <div className="h-screen w-screen overflow-hidden bg-white flex flex-row">
       <Sidebar />
       <ChatList />
       <ChatMessage />
