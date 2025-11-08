@@ -38,7 +38,7 @@ function ChatMessage() {
            
             <header className="flex items-center justify-between p-4 border-b bg-blue-50">
                 <div className="flex items-center">
-                    <img src="https://placeimg.com/100/100/people/3" alt="Benny" className="w-10 h-10 rounded-full mr-3" />
+                    <img src="https://picsum.photos/100/100"  alt="Benny" className="w-10 h-10 rounded-full mr-3" />
                     <div>
                         <h2 className="font-semibold text-blue-900">Bas</h2>
                         <p className="text-sm text-green-600">Online</p>
