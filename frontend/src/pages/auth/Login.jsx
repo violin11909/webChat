@@ -9,18 +9,23 @@ function Login() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
-  const [isFormComplete, setIsFromComplete] = useState(true);
+  const [displayError, setDisplayError] = useState("");
   const handleLogin = async () => {
     const trimmedUsername = username.trim();
     const trimmedPassword = password.trim();
     if (!username || !password) {
-      setIsFromComplete(false);
+      setDisplayError("Please fill out the form");
       return;
     }
     const data = { username: trimmedUsername, password: trimmedPassword };
-    const response = await login(data);
-    if (response?.success) navigate("/");
-    // console.log(response);
+    try {
+      const response = await login(data);
+      console.log(response);
+      if (response?.success) navigate("/");
+    } catch (error) {
+      setDisplayError("Incorrect username or password.")
+      console.log(error);
+    }
   };
 
   return (
@@ -33,13 +38,7 @@ function Login() {
         {/* Password */}
         <div className={labelClassName}>Password</div>
         <input type={"password"} value={password} className={inputClassName} onChange={(e) => setPassword(e.target.value)} />
-        {isFormComplete ? (
-          <div className="mt-2 h-[24px]"></div>
-        ) : (
-          <>
-            <div className=" text-red-700 font-[700] text-[16px] mt-2">Please fill out the form</div>
-          </>
-        )}
+        <div className=" text-red-700 font-[700] text-[16px] h-[22px] mt-2">{displayError}</div>
         <div
           className={`flex items-center justify-center rounded-md px-2 w-full h-[48px] bg-orange-400 hover:bg-orange-500 hover- mt-4 text-white font-[500] shadow-sm`}
           onClick={handleLogin}

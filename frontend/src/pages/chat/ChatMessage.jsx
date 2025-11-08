@@ -19,7 +19,7 @@ function MessageItem({ msg }) {
         <div className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}>
             <div className="flex items-end max-w-lg">
                 
-                <div className={`px-4 py-3 rounded-xl ${isSender ? 'bg-blue-600 text-white rounded-br-none' : 'bg-white text-black shadow-md rounded-bl-none'}`}>
+                <div className={`px-4 py-3 rounded-xl ${isSender ? 'bg-[#FF9A00] text-black rounded-br-none' : 'bg-white text-black shadow-md rounded-bl-none'}`}>
                     <p>{msg.content}</p>
                 </div>
                 
@@ -34,31 +34,31 @@ function MessageItem({ msg }) {
 function ChatMessage() {
     return (
         
-        <div className="bg-white flex flex-col h-screen flex-grow">
+        <div className="bg-[#313131] flex flex-col h-auto flex-grow my-8 mr-8 rounded-lg shadow-2xl">
            
-            <header className="flex items-center justify-between p-4 border-b bg-blue-50">
+            <header className="flex items-center justify-between p-4 bg-[#FF9A00] m-4 rounded-lg">
                 <div className="flex items-center">
                     <img src="https://picsum.photos/100/100"  alt="Benny" className="w-10 h-10 rounded-full mr-3" />
                     <div>
-                        <h2 className="font-semibold text-blue-900">Bas</h2>
-                        <p className="text-sm text-green-600">Online</p>
+                        <h2 className="font-semibold text-white">Bas</h2>
+                        <p className="text-sm text-white">Online</p>
                     </div>
                 </div>
-                <div className="flex space-x-4 text-gray-600">
+                {/* <div className="flex space-x-4 text-gray-600">
                     <button><HiPhone size={24} /></button>
                     <button><HiVideoCamera size={24} /></button>
                     <button><HiEllipsisHorizontal size={24} /></button>
-                </div>
+                </div> */}
             </header>
 
             
-            <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-gray-100">
+            <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#313131]">
                 {messages.map(msg => (
                     <MessageItem key={msg.id} msg={msg} />
                 ))}
             </main>
 
-            <footer className="p-4 bg-white border-t">
+            <footer className="p-4 bg-[#313131] rounded-lg">
                 <div className="flex items-center bg-gray-100 rounded-lg p-2">
                     <button className="p-2 text-gray-600 hover:text-blue-500">
                         <HiPaperClip size={24} />

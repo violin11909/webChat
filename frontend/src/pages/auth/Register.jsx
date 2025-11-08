@@ -10,7 +10,21 @@ function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isRegisterSuccess, setIsRegisterSuccess] = useState(false);
+  const [displayError, setDisplayError] = useState("");
   const [isFormComplete, setIsFromComplete] = useState(true);
+  const handleLogin = async () => {
+  const trimmedUsername = username.trim();
+  const trimmedPassword = password.trim();
+
+    const data = { username: trimmedUsername, password: trimmedPassword };
+    try {
+      const response = await login(data);
+      if (response?.success) navigate("/");
+    } catch (error) {
+      console.log(error);
+    }
+    // console.log(response);
+  };
   const handleRegister = async () => {
     const trimmedName = name.trim();
     const trimmedUsername = username.trim();
@@ -21,24 +35,18 @@ function Register() {
     }
     const data = { name: trimmedName, username: trimmedUsername, password: trimmedPassword };
 
-    const handleLogin = async () => {
-    const trimmedUsername = username.trim();
-    const trimmedPassword = password.trim();
-
-      const data = { username: trimmedUsername, password: trimmedPassword };
-      const response = await login(data);
-      if (response?.success) navigate("/");
-      // console.log(response);
-    };
-
-    const response = await register(data);
-    if (response?.success === true) {
-      setIsRegisterSuccess(true);
-      setIsFromComplete(true);
-      await handleLogin();
-      setName("");
-      setUsername("");
-      setPassword("");
+    try {
+      const response = await register(data);
+      if (response?.success === true) {
+        setIsRegisterSuccess(true);
+        setIsFromComplete(true);
+        await handleLogin();
+        setName("");
+        setUsername("");
+        setPassword("");
+      }
+    } catch(error) {
+      console.log(error);
     }
   };
 
