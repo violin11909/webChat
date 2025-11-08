@@ -1,7 +1,7 @@
 
 import Sidebar from '../../components/layout/Sidebar';
 
-function Landing() {
+function Home() {
   return (
 
     <div className="h-screen w-screen overflow-hidden bg-blue-100 flex flex-row">
@@ -12,4 +12,4 @@ function Landing() {
 
 
 
-export default Landing;
+export default Home;
