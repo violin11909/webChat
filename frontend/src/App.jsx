@@ -1,7 +1,8 @@
 
-import Sidebar from './component/Sidebar';
-import ChatMessage from './component/ChatMessage';
-import ChatList from './component/ChatList';
+import Sidebar from './components/layout/Sidebar';
+import ChatMessage from './pages/chat/ChatMessage';
+import ChatList from './pages/chat/ChatList';
+
 
 function App() {
   return (

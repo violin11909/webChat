@@ -1,11 +1,11 @@
 const groups = [
-    { name: "Group A", msg: "มีเเต่งาน", img: "https://placeimg.com/100/100/people/1", active: true },
-    { name: "Group B", msg: "เเล้วก็งาน", img: "https://placeimg.com/100/100/arch/1", active: false },
-    { name: "Group C", msg: "เหนื่อยชหเทอมนี้", img: "https://placeimg.com/100/100/nature/1", active: false },
+    { name: "Group A", msg: "มีเเต่งาน", img: "https://picsum.photos/id/237/200/300", active: true },
+    { name: "Group B", msg: "เเล้วก็งาน", img: "https://picsum.photos/id/237/200/300", active: false },
+    { name: "Group C", msg: "เหนื่อยชหเทอมนี้", img: "https://picsum.photos/id/237/200/300", active: false },
 ];
 
 const personal = [
-    { name: "Bas", msg: "Zzzz", img: "https://placeimg.com/100/100/people/2", active: false },
+    { name: "Bas", msg: "Zzzz", img: "https://picsum.photos/id/237/200/300", active: false },
    
 ];
 
