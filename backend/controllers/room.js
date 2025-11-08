@@ -5,7 +5,7 @@ const User = require('../models/User')
 exports.createRoom = async (name, isPrivate, member) => {
     try {
 
-        if (!name || !member || !isPrivate) {
+        if (!name || !member || typeof isPrivate !== "boolean") {
             throw Error('Missing required room data');
         }
 

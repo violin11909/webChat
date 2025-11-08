@@ -37,8 +37,7 @@ function initSocket(server) {
             if (!user) {
                 throw new Error("User not found");
             }
-            
-            socket.data.userId = decoded.id;
+            socket.data.user = user;
 
             next();
         } catch (err) {
@@ -50,11 +49,11 @@ function initSocket(server) {
     });
 
     io.on('connection', (socket) => {
-        // console.log(`User connected: ${socket.id}`);
+        console.log(`🟢 User '${socket.data.user.name}' connected`);
 
         socket.on('send-message', async (data) => {
             try {
-                const senderId = socket.data.userId;
+                const senderId = socket.data.user._id;
                 const { roomId, content, type } = data;
                 const savedMessage = await saveMessage(roomId, content, type, senderId);
 
@@ -87,11 +86,19 @@ function initSocket(server) {
             socket.join(roomId);
         });
 
+        socket.on("leave-room", async (roomId) => {
+            if (!roomId) {
+                socket.emit("error-message", "Room not found!");
+                return;
+            }
+            socket.leave(roomId);
+        });
+
         socket.on('create-room', async (data) => {
             try {
                 const { name, isPrivate, friendId } = data;
 
-                if (!name || !isPrivate) {
+                if (!name || typeof isPrivate !== "boolean") {
                     socket.emit("error-message", "Missing required room data!");
                     return;
                 }
@@ -101,7 +108,7 @@ function initSocket(server) {
                         return;
                     }
                 }
-                const member = isPrivate ? [socket.data.userId, friendId] : [socket.data.userId];
+                const member = isPrivate ? [socket.data.user._id, friendId] : [socket.data.user._id];
                 const createdRoom = await createRoom(name, isPrivate, member);
 
                 if (!createdRoom) {
@@ -111,7 +118,6 @@ function initSocket(server) {
                 socket.emit("success-message", "Create room successful!");
                 socket.join(createdRoom._id.toString());
 
-
             } catch (err) {
                 socket.emit("error-message", err.message);
                 return;
@@ -120,7 +126,7 @@ function initSocket(server) {
 
 
         socket.on('disconnect', () => {
-            console.log('User disconnected', socket.id);
+            console.log(`🔴 User '${socket.data.user.name}' Disconnectd`);
         });
     });
 
