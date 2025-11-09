@@ -23,3 +23,22 @@ exports.createRoom = async (name, isPrivate, member) => {
         throw err;
     }
 }
+
+exports.editRoomProfile = async (filePath, roomId) => {
+    try {
+        if (!filePath) {
+            throw Error('Missing file path');
+        }
+        const room = await Room.findById(roomId);
+        if (!room) {
+            throw Error('Room not found');
+        }
+
+        const upDatedProfile = Room.findByIdAndUpdate(roomId, { profile: filePath }, { new: true, runValidators: true })
+        // await ออกเพราะต้องการให้ user ไม่ต้องรอ update profile on mongo ดีมั้ย?
+        return upDatedProfile;
+
+    } catch (err) {
+        throw err;
+    }
+}

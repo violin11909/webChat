@@ -14,7 +14,11 @@ const RoomSchema = new mongoose.Schema({
     isPrivate: {
         type: Boolean,
         required: true
-    }
+    },
+    profile: {
+        type: String,
+        default : "somepicture"
+    },
 })
 
 module.exports = mongoose.model('Room', RoomSchema)
