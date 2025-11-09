@@ -18,11 +18,11 @@ function Sidebar() {
   const [activeTab, setActiveTab] = useState(location.pathname);
 
   const activeTabDisplay = (tabName) => {
-    return activeTab === tabName ? "bg-white/20" : "hover:bg-blue-700";
+    return activeTab === tabName ? "bg-[#FF9A00]" : "hover:bg-gray-500";
   };
 
   return (
-    <div className="min-w-30 bg-blue-900 text-white flex flex-col items-center py-6 justify-between">
+    <div className="min-w-30 bg-[#313131] text-white flex flex-col items-center py-6 justify-between mx-6 my-8 rounded-lg">
       <div className="flex flex-col items-center">
         <img src="https://picsum.photos/id/50/100/100" alt="Profile" className="w-12 h-12 rounded-full mb-8" />
         <nav className="flex flex-col space-y-6">
@@ -32,7 +32,7 @@ function Sidebar() {
           <button className={`p-3 ${activeTabDisplay("/chat")} rounded-lg`} onClick={() => navigate("/chat")}>
             <HiChatBubbleLeftRight size={24} />
           </button>
-          <button className="p-3 rounded-lg hover:bg-blue-700">
+          <button className={`p-3 ${activeTabDisplay("/setting")} rounded-lg`}>
             <HiAdjustmentsHorizontal size={24} />
           </button>
         </nav>
