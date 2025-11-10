@@ -6,7 +6,7 @@ import ImageUploader from '../ImageUploader';
 
 
 function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChangingUserProfile }) {
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState(location.pathname);
@@ -69,7 +69,12 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
 
       </div>
 
-      <button className="p-3 rounded-lg hover:bg-blue-700 cursor-pointer">
+      <button className="p-3 rounded-lg hover:bg-gray-500 cursor-pointer" 
+        onClick={() => {
+          logout();
+          navigate("/login");
+        }}
+      >
         <HiArrowLeftOnRectangle size={24} />
       </button>
 

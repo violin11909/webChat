@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
-import Sidebar from "../../components/layout/Sidebar";
-import { login } from "../../features/auth";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { login as loginService } from "../../features/auth";
+import { useAuth } from "../../contexts/AuthContext";
 
-const inputClassName = "border-[1.5px] border-gray-300 shadow-sm rounded-md px-2 w-full h-[40px] [color-scheme:light]";
+const inputClassName =
+  "border-[1.5px] border-gray-300 shadow-sm rounded-md px-2 w-full h-[40px] [color-scheme:light]";
 const labelClassName = "text-[14px] font-[500] mt-4 mb-1";
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [displayError, setDisplayError] = useState("");
@@ -19,11 +21,15 @@ function Login() {
     }
     const data = { username: trimmedUsername, password: trimmedPassword };
     try {
-      const response = await login(data);
-      console.log(response);
-      if (response?.success) navigate("/");
+      const response = await loginService(data);
+      if (response?.success) {
+        await login(response.token);
+        navigate("/chat");
+      } else {
+        setDisplayError("Incorrect username or password.");
+      }
     } catch (error) {
-      setDisplayError("Incorrect username or password.")
+      setDisplayError("Incorrect username or password.");
       console.log(error);
     }
   };
@@ -47,7 +53,7 @@ function Login() {
         </div>
         <div className="flex flex-col items-center mt-auto">
           <div className="text-gray-600 font-[500]">Don't have an account?</div>
-          <div className="text-orange-600 font-[600] select-none hover:text-orange-700">Sign up</div>
+          <div className="text-orange-600 font-[600] select-none hover:text-orange-700" onClick={() => navigate("/register")}>Sign up</div>
         </div>
       </div>
     </div>
