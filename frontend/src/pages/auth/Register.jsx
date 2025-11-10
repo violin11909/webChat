@@ -24,11 +24,7 @@ function Register() {
       setIsFormComplete(false);
       return;
     }
-    const data = {
-      name: trimmedName,
-      username: trimmedUsername,
-      password: trimmedPassword,
-    };
+    const data = { name: trimmedName, username: trimmedUsername, password: trimmedPassword };
 
     try {
       const response = await register(data);
