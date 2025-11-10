@@ -13,7 +13,9 @@ exports.saveMessage = async (roomId, content, type, senderId) => {
             throw new Error('Room not found');
         }
 
-        const savedMsg = await Message.create({ content, type, senderId, roomId });
+        const savedContent = await Message.create({ content, type, senderId, roomId });
+        await Room.findOneAndUpdate(roomId, { lastContent: savedContent._id })
+
         return savedMsg;
 
     } catch (err) {

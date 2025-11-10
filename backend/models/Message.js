@@ -3,7 +3,7 @@ const mongoose = require('mongoose')
 const MessageSchema = new mongoose.Schema({
     content: {
         type: String,
-        required: [true, 'Please add a content']
+        required: [true, 'Please add a content'] //if image -> content = url
     },
     type: {
         type: String,

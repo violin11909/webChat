@@ -1,3 +1,5 @@
+import { useState } from 'react';
+import EditProfile from './EditProfile';
 import { HiPhone, HiVideoCamera, HiEllipsisHorizontal, HiPaperClip, HiMicrophone } from 'react-icons/hi2';
 
 const messages = [
@@ -18,11 +20,11 @@ function MessageItem({ msg }) {
     return (
         <div className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}>
             <div className="flex items-end max-w-lg">
-                
+
                 <div className={`px-4 py-3 rounded-xl ${isSender ? 'bg-[#FF9A00] text-black rounded-br-none' : 'bg-white text-black shadow-md rounded-bl-none'}`}>
                     <p>{msg.content}</p>
                 </div>
-                
+
                 <span className={`text-xs text-gray-400 mx-2 ${isSender ? 'order-first' : ''}`}>
                     {msg.time}
                 </span>
@@ -31,19 +33,42 @@ function MessageItem({ msg }) {
     );
 }
 
-function ChatMessage() {
+
+function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile }) {
+    if (!selectedRoom) return;
+
+    const handleChangeProfile = () => {
+        if (selectedRoom.isPrivate) return;
+        setOnChangProfile(true)
+    }
+
     return (
-        
-        <div className="bg-[#313131] flex flex-col h-auto flex-grow my-8 mr-8 rounded-lg shadow-2xl">
-           
+        <div className="bg-[#313131] flex flex-col h-auto grow my-8 mr-8 rounded-lg shadow-2xl relative">
+            {onChangProfile && (
+                <EditProfile
+                    setOnChangProfile={setOnChangProfile}
+                    type={"room-profile"}
+                    profile={selectedRoom.profile}
+                    roomId={selectedRoom._id}
+                    setSelectedRoom={setSelectedRoom}
+                    isUploading={isUploading}
+                    setIsUploading={setIsUploading}
+
+                />)}
+
             <header className="flex items-center justify-between p-4 bg-[#FF9A00] m-4 rounded-lg">
                 <div className="flex items-center">
-                    <img src="https://picsum.photos/100/100"  alt="Benny" className="w-10 h-10 rounded-full mr-3" />
+                    <img
+                        src={selectedRoom.profile ? selectedRoom.profile : "https://i.postimg.cc/XNcYzq3V/user.png"}
+                        className="w-15 h-15 rounded-full mr-3 cursor-pointer object-cover bg-white"
+                        onClick={handleChangeProfile}
+                    />
                     <div>
-                        <h2 className="font-semibold text-white">Bas</h2>
+                        <h2 className="font-semibold text-white">{selectedRoom.name}</h2>
                         <p className="text-sm text-white">Online</p>
                     </div>
                 </div>
+
                 {/* <div className="flex space-x-4 text-gray-600">
                     <button><HiPhone size={24} /></button>
                     <button><HiVideoCamera size={24} /></button>
@@ -51,7 +76,7 @@ function ChatMessage() {
                 </div> */}
             </header>
 
-            
+
             <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#313131]">
                 {messages.map(msg => (
                     <MessageItem key={msg.id} msg={msg} />
