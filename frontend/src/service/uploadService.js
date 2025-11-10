@@ -1,9 +1,10 @@
 import storage from '../../config/config';
 import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
-export const upload = (type, file, userId, roomId, handleProgress) => {
 
-    return new Promise((resolve, reject) => {
+export const upload = (type, file, userId, roomId, handleProgress, setNotification) => {
+
+    return new Promise(async (resolve, reject) => {
 
         try {
             let storagePath;
@@ -31,7 +32,6 @@ export const upload = (type, file, userId, roomId, handleProgress) => {
                 throw new Error("Invalid upload type specified");
             }
 
-
             const storageRef = ref(storage, storagePath);
             const metadata = { contentType: file.type };
             const uploadTask = uploadBytesResumable(storageRef, file, metadata);
@@ -39,28 +39,31 @@ export const upload = (type, file, userId, roomId, handleProgress) => {
             uploadTask.on('state_changed',
                 (snapshot) => {
                     const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-                    handleProgress(progress);
-                    console.log('Upload is ' + progress + '% done');
+                    const text = `... กำลังอัปโหลด ${progress.toFixed(0)} %`
+                    handleProgress(text);
                 },
                 (error) => {
-                    // 5. ถ้า Error ให้ "reject" Promise
                     console.error("Upload failed:", error);
                     reject(error);
                 },
                 () => {
-                    getDownloadURL(uploadTask.snapshot.ref).then((downloadURL) => {
-                        console.log('File available at', downloadURL);
-                        resolve(downloadURL);
+                    handleProgress("โปรดรอสักครู่");
+                    getDownloadURL(uploadTask.snapshot.ref).then(async (downloadURL) => {
+                        try {
+                            console.log('File available at', downloadURL);
+                            resolve(downloadURL);
+                        } catch (error) {
+                            console.error("Failed to get Download URL", error);
+                            reject(error);
+                        }
 
-                    }).catch((err) => {
-                        console.error("Failed to get Download URL", err);
-                        reject(err);
                     });
                 }
             );
 
         } catch (error) {
             alert(error.message);
+            console.error(error);
             reject(error);
         }
 

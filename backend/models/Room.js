@@ -19,6 +19,11 @@ const RoomSchema = new mongoose.Schema({
         type: String,
         default : "somepicture"
     },
+    lastContent: {
+        type: mongoose.Schema.ObjectId,
+        ref: "Message"
+    },
+
 })
 
 module.exports = mongoose.model('Room', RoomSchema)

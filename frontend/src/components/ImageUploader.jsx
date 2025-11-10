@@ -1,11 +1,15 @@
 import { useState, useEffect } from 'react';
 import { upload } from '../service/uploadService';
+import { useUpdateRoomProfile } from '../hooks/useUpdateRoomProfile';
 
-const ImageUploader = ({ type, profile }) => {
+
+const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUploading, setOnChangProfile, setSelectedRoom }) => {
     const [selectedFile, setSelectedFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [onProgress, setOnProgress] = useState(null);
-    const [isUploading, setIsUploading] = useState(false);
+    const diableButton = !selectedFile || isUploading;
+
+    const updateRoomMutation = useUpdateRoomProfile();
 
     useEffect(() => {
         if (profile) setPreview(profile);
@@ -37,27 +41,36 @@ const ImageUploader = ({ type, profile }) => {
         try {
             setIsUploading(true);
             setOnProgress(0);
-            await upload(type, selectedFile, "690df53f73e34f8c43822190", "", handleProgress);
+            const url = await upload(type, selectedFile, userId, roomId, handleProgress);
+            setSelectedRoom(prev => ({ ...prev, profile: url }));
+
+            if (type === "room-profile") {
+                updateRoomMutation.mutate({ filePath: url, roomId: roomId });
+            }
 
         } catch (error) {
             alert(error.message);
 
         } finally {
             setIsUploading(false);
+            setOnChangProfile(false)
         }
     };
 
     return (
         <div className="w-50 flex flex-col items-center gap-4">
-            <h1 className='text-gray-800 text-xl font-bold flex items-center'>Profile</h1>
+            <h1 className='text-white text-xl font-bold flex items-center'>Profile</h1>
 
-            <div className="w-30 flex flex-col items-center rounded-full relative shadow-black/30 shadow-md">
+            <div className="relative">
+                <div className='rounded-full bg-white flex justify-center items-center'>
+                    <img
+                        src={preview ? preview : "https://i.postimg.cc/XNcYzq3V/user.png"} //defalut should pull from mongo
+                        alt="profile"
+                        className="cursor-pointer object-cover w-35 h-35 rounded-full"
+                    />
 
-                <img
-                    src={preview ? preview : "https://i.postimg.cc/XNcYzq3V/user.png"} //defalut should pull from mongo
-                    alt="profile"
-                    className="cursor-pointer object-contain"
-                />
+                </div>
+
 
                 <label
                     htmlFor="profile-upload"
@@ -69,6 +82,7 @@ const ImageUploader = ({ type, profile }) => {
                 </label>
 
                 <input
+                    id="profile-upload"
                     type="file"
                     className="hidden"
                     onChange={handleFileChange}
@@ -78,14 +92,14 @@ const ImageUploader = ({ type, profile }) => {
 
             <button
                 onClick={handleUpload}
-                disabled={!selectedFile || isUploading}
+                disabled={diableButton}
                 className="px-7 py-2 bg-green-500 text-white rounded font-semibold hover:bg-green-600 disabled:bg-gray-400 cursor-pointer"
             >
                 Save Image
             </button>
 
             {isUploading && (
-                <p className='text-black'>{onProgress == 100 ? "อัปโหลดเสร็จเเล้ว" : `กำลังอัปโหลด... ${onProgress.toFixed(0)}%`}</p>
+                <p className='text-white'>{onProgress}</p>
             )}
 
 
