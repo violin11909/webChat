@@ -44,6 +44,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
     return (
         <div className="bg-[#313131] flex flex-col h-auto grow my-8 mr-8 rounded-lg shadow-2xl relative">
+             {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
             {onChangProfile && (
                 <EditProfile
                     setOnChangProfile={setOnChangProfile}
