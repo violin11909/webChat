@@ -1,23 +1,22 @@
 import { useState, useEffect } from 'react';
 import { upload } from '../service/uploadService';
-import { useUpdateRoomProfile } from '../hooks/useUpdateRoomProfile';
+import { useUpdateRoomProfile, useUpdateUserProfile } from '../hooks/useUpdateProfile';
 
 
 const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUploading, setOnChangProfile, setSelectedRoom }) => {
     const [selectedFile, setSelectedFile] = useState(null);
-    const [preview, setPreview] = useState(null);
+    const [preview, setPreview] = useState(profile);
     const [onProgress, setOnProgress] = useState(null);
     const diableButton = !selectedFile || isUploading;
 
     const updateRoomMutation = useUpdateRoomProfile();
+    const updateUserMutation = useUpdateUserProfile();
 
-    useEffect(() => {
-        if (profile) setPreview(profile);
-    }, [])
+    console.log(profile);
+
 
     useEffect(() => {
         if (!selectedFile) {
-            setPreview(null);
             return;
         }
         const objectUrl = URL.createObjectURL(selectedFile);
@@ -28,8 +27,19 @@ const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUpload
 
 
     const handleFileChange = (e) => {
-        if (e.target.files && e.target.files[0]) setSelectedFile(e.target.files[0]);
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const maxSize = 2 * 1024 * 1024; // 2MB
+
+            if (file.size > maxSize) {
+                alert("ขนาดไฟล์เกิน 2MB!");
+                e.target.value = "";
+                return;
+            }
+            setSelectedFile(file);
+        }
     };
+
     const handleProgress = (progress) => setOnProgress(progress);
 
 
@@ -42,18 +52,22 @@ const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUpload
             setIsUploading(true);
             setOnProgress(0);
             const url = await upload(type, selectedFile, userId, roomId, handleProgress);
-            setSelectedRoom(prev => ({ ...prev, profile: url }));
 
             if (type === "room-profile") {
+                setSelectedRoom(prev => ({ ...prev, profile: url }));
                 updateRoomMutation.mutate({ filePath: url, roomId: roomId });
+            } else if (type === "user-profile") {
+                updateUserMutation.mutate({ filePath: url, userId: userId });
             }
+
 
         } catch (error) {
             alert(error.message);
 
         } finally {
             setIsUploading(false);
-            setOnChangProfile(false)
+            setOnChangProfile(false);
+
         }
     };
 
@@ -64,11 +78,10 @@ const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUpload
             <div className="relative">
                 <div className='rounded-full bg-white flex justify-center items-center'>
                     <img
-                        src={preview ? preview : "https://i.postimg.cc/XNcYzq3V/user.png"} //defalut should pull from mongo
+                        src={preview}
                         alt="profile"
                         className="cursor-pointer object-cover w-35 h-35 rounded-full"
                     />
-
                 </div>
 
 
@@ -86,7 +99,7 @@ const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUpload
                     type="file"
                     className="hidden"
                     onChange={handleFileChange}
-                    accept="image/*"
+                    accept=".png, .jpg, .jpeg, .webp"
                 />
             </div>
 

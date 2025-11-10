@@ -2,9 +2,12 @@ const express = require('express')
 const dotenv = require('dotenv')
 const connectDB = require('./config/db')
 const cors = require('cors');
+const cookieParser = require('cookie-parser'); // 1. Import
 
 const auth = require('./routes/auth')
 const room = require('./routes/room')
+const user = require('./routes/user')
+
 
 
 const { initSocket } = require('./listeners/socket');
@@ -16,13 +19,20 @@ dotenv.config({ path: './.env' });
 connectDB()
 
 const app = express()
-app.use(cors());
+app.use(cors({
+    origin: "http://localhost:5173",
+    credentials: true
+}));
+
+app.use(cookieParser());
 
 // Body parser
 app.use(express.json())
 // Route
 app.use('/api/v1/auth', auth)
 app.use('/api/v1/room', room)
+app.use('/api/v1/user', user)
+
 
 
 const PORT = process.env.PORT || 5000

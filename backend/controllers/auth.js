@@ -81,6 +81,7 @@ const sendTokenResponse = (user, statusCode, res) => {
 // @route   POST /api/v1/auth/me
 // @access  Private
 exports.getMe = async (req, res, next) => {
+    console.log(req.user.id)
     const user = await User.findById(req.user.id)
 
     if (!user) {

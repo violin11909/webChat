@@ -1,20 +1,21 @@
 const User = require('../models/User')
 
-exports.editUserProfile = async (filePath, userId) => {
+exports.updateUserProfile = async (req, res) => {
     try {
+        const { filePath, userId } = req.body;
         if (!filePath) {
-            throw Error('Missing file path');
+            return res.status(400).json({ message: 'Missing file path' });
         }
         const user = await User.findById(userId);
         if (!user) {
-            throw Error('User not found');
+            return res.status(404).json({ message: 'User not found' });
         }
 
-        const upDatedProfile = await User.findByIdAndUpdate(userId, { profile: filePath }, { new: true, runValidators: true })
-        //หรือไม่ควร await ดี
-        return upDatedProfile;
+        const updatedUser = await User.findByIdAndUpdate(userId, { profile: filePath }, { new: true, runValidators: true })
+        res.status(200).json({ message: "Profile updated successfully" , data: updatedUser});
 
     } catch (err) {
-        throw err;
+        console.error(err.message)
+        res.status(500).json({ message: "Server error", error: err.message });
     }
 }
