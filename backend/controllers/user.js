@@ -19,3 +19,19 @@ exports.updateUserProfile = async (req, res) => {
         res.status(500).json({ message: "Server error", error: err.message });
     }
 }
+
+// @desc    Get All Users
+// @route   GET /api/v1/user
+// @access  Private
+exports.getUsers = async (req, res) => {
+    try {
+        // req query search by name
+        const users = await User.find({
+            name: { $regex: req.query.name || '', $options: 'i' }
+        }).select('-password -username');
+        res.status(200).json({ success: true, msg: 'Get users successfully', data: users })
+    } catch (err) {
+        res.status(500).json({ success: false, msg: 'Server Error' });
+        console.error(err.message);
+    }
+}

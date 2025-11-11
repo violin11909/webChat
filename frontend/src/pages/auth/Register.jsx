@@ -1,10 +1,9 @@
 import { useState } from "react";
-import { register } from "../../features/auth";
-import { Link, useNavigate } from "react-router-dom";
+import { register } from "../../service/authService";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../contexts/AuthContext";
 
-const inputClassName =
-  "border-[1.5px] border-gray-300 shadow-sm rounded-md px-2 w-full h-[40px] bg-gray-100 [color-scheme:light]";
+const inputClassName = "border-[1.5px] border-gray-300 shadow-sm rounded-md px-2 w-full h-[40px] bg-gray-100 [color-scheme:light]";
 const labelClassName = "text-[14px] font-[500] mt-4 mb-1";
 function Register() {
   const navigate = useNavigate();

@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { createRoom } from '../../service/roomService'; 
+import { ChatItem } from "./ChatItem";
+import { UserItem } from "./UserItem";
 
-function ChatList({ selectedRoom, setSelectedRoom, rooms, isUploading, setOnChangProfile }) {
+function ChatList({ selectedRoom, setSelectedRoom, rooms, users, currentUser, isUploading, setOnChangProfile }) {
 
   const [activeTab, setActiveTab] = useState("All");
 
@@ -21,6 +25,39 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, isUploading, setOnChan
     return rooms.filter((room) => room.isPrivate === true);
   }, [rooms]);
 
+  const queryClient = useQueryClient();
+  const createRoomMutation = useMutation({
+    mutationFn: ({ name, isPrivate, member }) => createRoom(name, isPrivate, member),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      setSelectedRoom(data);
+    },
+    onError: (error) => {
+      console.error("Error creating room:", error);
+    } 
+  });
+
+  const handleSelectUser = (clickedUser) => {
+    //check if private room between current user and clicked user already exists
+    const existingRoom = privateRooms.find((room) => {
+      // didnot check other logic because private room handle isPrivate equals true already
+      return room.member.includes(currentUser._id) && room.member.includes(clickedUser._id);
+    });
+    if (existingRoom) {
+      setSelectedRoom(existingRoom);
+      setOnChangProfile(false);
+      return;
+    } else {
+      //create new private room
+      const roomName = `Private Chat: ${currentUser.name} & ${clickedUser.name}`;
+      createRoomMutation.mutate({
+        name: roomName,
+        isPrivate: true,
+        member: [currentUser._id, clickedUser._id]
+      });
+    }
+  }
+
   return (
     <div className="min-w-60 bg-[#313131] p-6 overflow-y-auto my-8 mr-6 rounded-lg shadow-lg relative ">
       {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
@@ -33,6 +70,7 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, isUploading, setOnChan
       <div className="flex flex-row gap-2 p-2 px-0">
         {tabs.map((tab, index) => (
           <div
+            key={tab}
             className={`w-20 text-white text-center ${activeTab === tab ? "bg-[#FF9A00]" : ""} rounded-sm cursor-pointer`}
             onClick={() => setActiveTab(tab)}>
             {tab}
@@ -58,47 +96,22 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, isUploading, setOnChan
       )}
 
 
-      {(activeTab === "All" || activeTab === "Private") && privateRooms.length != 0 && (
+      {(activeTab === "All" || activeTab === "Private") && (
         <section className="mt-8">
           <h2 className="flex-1 text-xl font-semibold text-white mb-2">Private</h2>
           <div className="space-y-4">
-            {privateRooms.map((room) => (
-              <ChatItem key={room._id} room={room} selectedRoom={selectedRoom} setSelectedRoom={setSelectedRoom} setOnChangProfile={setOnChangProfile} />
+            {users.map((user) => (
+              <UserItem 
+                key={user._id} 
+                user={user} 
+                onSelectUser={handleSelectUser}
+                selectedRoom={selectedRoom}
+                currentUser={currentUser}
+              />
             ))}
           </div>
         </section>
-
       )}
-
-
-    </div>
-  );
-}
-
-
-
-function ChatItem({ room, setSelectedRoom, selectedRoom, setOnChangProfile }) {
-
-  const handleSelectRoom = (room) => {
-    setSelectedRoom(room);
-    setOnChangProfile(false);
-  }
-  return (
-    <div className="flex flex-row items-center" onClick={() => handleSelectRoom(room)}>
-
-      <img
-        src={room.profile ? room.profile : "https://i.postimg.cc/XNcYzq3V/user.png"}
-        className="w-15 h-15 rounded-full mr-2 object-cover bg-white" />
-
-      <div
-        className={`flex grow h-16 items-center p-3 rounded-xl cursor-pointer ${selectedRoom && selectedRoom._id == room._id ? "bg-orange-300" : "bg-white hover:bg-gray-100"} shadow-sm`}>
-        <div>
-          <h3 className="font-semibold text-black">{room.name}</h3>
-          {/* <p className="text-sm text-gray-600">{msg}</p> */}
-        </div>
-
-      </div>
-
     </div>
   );
 }

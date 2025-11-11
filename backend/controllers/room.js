@@ -13,26 +13,35 @@ exports.getRooms = async (req, res) => {
 
     }
 }
-
-exports.createRoom = async (name, isPrivate, member) => {
+//  @desc    Create Room
+//  @route   POST /api/v1/room
+//  @access  Private
+/*
+    for more details in future about create room
+    first everyone see every users in private filter but there no room yet
+    if they click it will create private room between 2 users only and redirect to that room
+    (frontend) room name will not display it will display only other user's profile and name
+    for group room, there will be create room button, click it will pop up modal to input room name and select members
+*/
+exports.createRoom = async (req, res) => {
     try {
-
+        const { name, isPrivate, member } = req.body;
         if (!name || !member || typeof isPrivate !== "boolean") {
-            throw Error('Missing required room data');
+            return res.status(400).json({ success:false, message: 'Missing required fields' });
         }
 
         if (isPrivate) {
             const friend = await User.findById(member[1])
             if (!friend) {
-                throw new Error('Friend not founded');
+                return res.status(404).json({ success:false, message: 'User not found' });
             }
         }
 
         const savedRoom = await Room.create({ name, member, isPrivate });
-        return savedRoom;
-
+        res.status(201).json({ success:true, message: 'Room created successfully', data: savedRoom });
     } catch (err) {
-        throw err;
+        console.error('Error creating room:', err.message);
+        res.status(500).json({ success:false, message: 'Server error' });
     }
 }
 
