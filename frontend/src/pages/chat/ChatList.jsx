@@ -1,17 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createRoom } from '../../service/roomService';
+import { useMemo, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { ChatItem } from "./ChatItem";
 import { UserItem } from "./UserItem";
 import { useQueryData } from "../../contexts/QueryContext";
+import { useAuth } from "../../contexts/AuthContext";
+
+import { socket } from '../../listeners/socketClient';
+import { useEffect } from "react";
 
 function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploading, setOnChangProfile }) {
-
   const [activeTab, setActiveTab] = useState("All");
   const tabs = ["All", "Groups", "Private"]
   const { rooms } = useQueryData();
-  const queryClient = useQueryClient();
-
+  const { user } = useAuth();
 
   const groupRooms = useMemo(() => {
     if (!rooms) return [];
@@ -23,46 +24,53 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
     return rooms.filter((room) => room.isPrivate === true);
   }, [rooms]);
 
-  // const createRoomMutation = useMutation({
-  //   mutationFn: ({ name, isPrivate, member }) => createRoom(name, isPrivate, member),
-  //   onSuccess: (data) => {
-  queryClient.invalidateQueries({ queryKey: ['rooms'] });
-  //     console.log(data)
-  //     setSelectedRoom(data);
-  //   },
-  //   onError: (error) => {
-  //     console.error("Error creating room:", error);
-  //   }
-  // });
 
   const handleSelectUser = async (clickedUser) => {
-    //check if private room between current user and clicked user already exists
-    const existingRoom = privateRooms.find((room) => {
-      // didnot check other logic because private room handle isPrivate equals true already
-      return room.member.includes(currentUser._id) && room.member.includes(clickedUser._id);
-    });
+    const searchKey = (([user._id, clickedUser._id]).sort()).join("-");
+    const existingRoom = privateRooms.find((room) => room.searchKey && room.searchKey === searchKey);
+
     if (existingRoom) {
+      if (selectedRoom) socket.emit("leave-room", selectedRoom._id);
+      console.log('beofore join room: ', socket.rooms);
+      socket.emit("join-room", existingRoom._id);
+      console.log('join room: ', existingRoom._id);
+
       setSelectedRoom(existingRoom);
       setOnChangProfile(false);
       return;
     } else {
-      //create new private room
-      const roomName = `Private Chat: ${currentUser.name} & ${clickedUser.name}`;
-      // createRoomMutation.mutate({
-      //   name: roomName,
-      //   isPrivate: true,
-      //   member: [currentUser._id, clickedUser._id]
-      // });
-      const res = await createRoom({
-        name: roomName,
-        isPrivate: true,
-        member: [currentUser._id, clickedUser._id]
-      })
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      setSelectedRoom(res);
+      const roomName = `Private: ${currentUser.name} & ${clickedUser.name}`;
+      const roomData = { name: roomName, isPrivate: true, member: [currentUser._id, clickedUser._id] }
+      socket.emit("create-room", roomData);
 
     }
   }
+
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handleNewRoom = (newRoom) => {
+      console.log('beofore join room: ', socket.rooms);
+      console.log('join room: ', newRoom);
+      socket.emit("join-room", newRoom._id);
+      setSelectedRoom(newRoom);
+
+      queryClient.setQueryData(['rooms'], (oldRooms) => {
+        if (!oldRooms) return [newRoom];
+        const isExisting = oldRooms.some(room => room._id === newRoom._id);
+
+        if (isExisting) return oldRooms;
+        return [...oldRooms, newRoom];
+      });
+    };
+
+    socket.on('new-room', handleNewRoom);
+    return () => {
+      socket.off('new-room', handleNewRoom);
+    };
+
+  }, [queryClient, setSelectedRoom]);
+
 
   return (
     <div className="min-w-60 bg-[#313131] p-6 overflow-y-auto my-8 mr-6 rounded-lg shadow-lg relative ">

@@ -63,7 +63,7 @@ export const joinRoom = async (roomId, userId) => {
         }
 
         const res = await axios.post(`${API_URL}/room/join-room`, { roomId, userId });
-        return res.data;
+        return res.data.data;
 
     } catch (err) {
         console.error(err);

@@ -19,4 +19,5 @@ socket.on("success-message", (msg) => {
 
 
 socket.on("receive-message", (msg) => {
+    console.log(msg)
 });

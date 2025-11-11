@@ -1,6 +1,6 @@
 import EditProfile from './EditProfile';
 import { HiPaperClip, HiMicrophone } from 'react-icons/hi2';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { getContentsByRoomId, joinRoom } from '../../service/roomService';
 import { sendContent } from '../../listeners/userEvent';
@@ -9,10 +9,23 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMemo, useState } from 'react';
 import { useRef } from 'react';
 import { useLayoutEffect } from 'react';
-import { useQueryData } from '../../contexts/QueryContext';
+
+import { socket } from '../../listeners/socketClient';
+import { useEffect } from 'react';
 
 function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile, currentUser, users }) {
     if (!selectedRoom) return;
+    const { user } = useAuth();
+
+    const friendProfile = useMemo(() => {
+        if (selectedRoom.isPrivate && selectedRoom.member && user) {
+
+            const friend = selectedRoom.member.find((u) => u._id !== user._id);
+            return friend ? friend.profile : null;
+        }
+        return null; // ถ้าไม่ใช่ Private room หรือหาไม่เจอ
+    }, [selectedRoom, user]);
+
 
     const { data: contents, isLoading, isError } =
         useQuery({
@@ -20,6 +33,32 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             queryFn: () => getContentsByRoomId(selectedRoom._id),
             enabled: !!selectedRoom._id,
         });
+
+    const queryClient = useQueryClient();
+    useEffect(() => {
+        if (!selectedRoom || !selectedRoom._id) return;
+
+        const handleRecieveMessage = (msg) => {
+            console.log('        ')
+            console.log('receive msg = ', msg)
+            queryClient.setQueryData(['contents', selectedRoom._id], (oldContents) => {
+                if (!oldContents) return [msg];
+
+                const isExisting = oldContents.some(content => content._id === msg._id);
+                if (isExisting) return oldContents;
+                return [...oldContents, msg];
+            });
+        };
+        socket.on('receive-message', handleRecieveMessage);
+
+        //    Cleanup Function (สำคัญมาก!)
+        //    จะทำงานเมื่อ component unmount หรือ selectedRoom._id เปลี่ยน
+        return () => {
+            socket.off('receive-message', handleRecieveMessage);
+        };
+
+    }, [queryClient, selectedRoom._id]);
+
 
     const mapMemberProfile = useMemo(() => {
         if (!selectedRoom || !selectedRoom.member) return {};
@@ -30,41 +69,25 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         }, {});
     }, [selectedRoom]);
 
-    // console.log(rooms)
-    console.log('sleect rooom',selectedRoom)
-    console.log(mapMemberProfile)
 
-    const { user } = useAuth();
+
     const [message, setMessage] = useState("")
-    const saveContentMutation = useSaveContent();
-    const [isMember, setIsMember] = useState(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
+
+    const [isMember, setIsMember] = useState(null)
+
+    useEffect(() => {
+        setIsMember(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
+    }, [])
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
         setOnChangProfile(true)
     }
-    let displayName = selectedRoom.name;
-    let displayImage = selectedRoom.profile ? selectedRoom.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
-    let allowEditProfile = !selectedRoom.isPrivate;
-
-    if (selectedRoom.isPrivate && currentUser && users) {
-        const otherUserId = selectedRoom.member.find(id => id !== currentUser._id);
-
-        if (otherUserId) {
-            const otherUser = users.find(user => user._id === otherUserId);
-
-            if (otherUser) {
-                displayName = otherUser.name;
-                displayImage = otherUser.profile ? otherUser.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
-            }
-        }
-    }
 
     const sendUserContent = (roomId, content, type) => {
         if (type == 'text') {
             const messageData = { roomId: roomId, content: content, type: type, senderId: user._id, createdAt: new Date() }
-            sendContent(messageData)
-            saveContentMutation.mutate(messageData)
+            socket.emit("send-message", messageData);
         }
         else if (type == 'image') {
 
@@ -78,15 +101,16 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
     const handleJoinRoom = async () => {
         const res = await joinRoom(selectedRoom._id, user._id);
-        if (res && res.success) {
+        if (res) {
+            setSelectedRoom(res);
             setIsMember(true)
+            socket.emit("join-room", res._id);
             return;
         }
         setIsMember(false)
     }
 
-    const messagesEndRef = useRef(null);
-
+    const messagesEndRef = useRef(null); //scroller ล่างสุด
     useLayoutEffect(() => {
         if (messagesEndRef.current) {
             const container = messagesEndRef.current;
@@ -94,9 +118,8 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         }
     }, [contents]);
 
-
     if (!contents) return;
-    console.log(contents)
+    console.log(selectedRoom)
 
 
     return (
@@ -125,12 +148,12 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             <header className="flex items-center justify-between p-4 bg-[#FF9A00] m-4 rounded-lg">
                 <div className="flex items-center">
                     <img
-                        src={displayImage}
-                        className={`w-15 h-15 rounded-full mr-3 ${allowEditProfile ? 'cursor-pointer' : ''} object-cover bg-white`}
+                        src={selectedRoom.isPrivate ? friendProfile : selectedRoom.profile}
+                        className={`w-15 h-15 rounded-full mr-3  object-cover bg-white`}
                         onClick={handleChangeProfile}
                     />
                     <div>
-                        <h2 className="font-semibold text-white">{displayName}</h2>
+                        <h2 className="font-semibold text-white">{selectedRoom.name}</h2>
                         <p className="text-sm text-white">Online</p>
                     </div>
                 </div>
@@ -148,8 +171,8 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                         <MessageItem
                             key={content._id}
                             content={content}
-                            memberProfile={mapMemberProfile[content.senderId][0]}
-                            memberName={mapMemberProfile[content.senderId][1]}
+                            memberProfile={content.senderId.profile}
+                            memberName={content.senderId.name}
                         />
                     );
                 })}

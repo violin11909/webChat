@@ -18,14 +18,15 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
 
   return (
     <div className="min-w-30 bg-[#313131] text-white flex flex-col items-center py-6 justify-between mx-6 my-8 rounded-lg">
-      <div className="flex flex-col items-center">
-        <div className="relative">
+      <div className="flex flex-col items-center ">
+        <div className="relative h-12">
           <img
             src={user.profile}
             alt="user-profile"
             className="w-12 h-12 rounded-full mb-8 cursor-pointer z-50 relative bg-white"
             onClick={() => setIsChangingUserProfile(true)}
           />
+
 
           {isChangingUserProfile && (
             <div
@@ -53,6 +54,7 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
           )}
 
         </div>
+        <span className="max-w-26 wrap-break-word text-center mt-3">{user.name}</span>
 
 
         <nav className="flex flex-col space-y-6">
@@ -69,7 +71,7 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
 
       </div>
 
-      <button className="p-3 rounded-lg hover:bg-gray-500 cursor-pointer" 
+      <button className="p-3 rounded-lg hover:bg-gray-500 cursor-pointer"
         onClick={() => {
           logout();
           navigate("/login");
