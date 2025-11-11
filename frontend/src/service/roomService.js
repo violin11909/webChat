@@ -8,21 +8,27 @@ export const getRooms = async () => {
         console.log(roomdata);
         //axios จะทำการ parse JSON ให้อัตโนมัติ ไม่ต้องมี .json
         return roomdata;
-
     } catch (err) {
         return [];
     }
-
 }
 
 export const updateRoomProfile = async (filePath, roomId) => {
     try {
         const res = await axios.put(`${API_URL}/room/update-profile`, { filePath, roomId });
         return res.data.data;
-
     } catch (err) {
         console.error(err);
         throw new Error("Failed to change room profile")
     }
+}
 
+export const createRoom = async (name, isPrivate, member) => {
+    try {
+        const res = await axios.post(`${API_URL}/room`, { name, isPrivate, member });
+        return res.data.data;
+    } catch (err) {
+        console.error(err);
+        throw new Error("Failed to create room")
+    }
 }
