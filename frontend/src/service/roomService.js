@@ -9,19 +9,16 @@ export const getRooms = async () => {
     } catch (err) {
         return [];
     }
-
 }
 
 export const updateRoomProfile = async (filePath, roomId) => {
     try {
         const res = await axios.put(`${API_URL}/room/update-profile`, { filePath, roomId });
         return res.data.data;
-
     } catch (err) {
         console.error(err);
         throw new Error("Failed to change room profile")
     }
-
 }
 
 
@@ -73,4 +70,13 @@ export const joinRoom = async (roomId, userId) => {
         throw new Error("Failed to save content")
     }
 
+}
+export const createRoom = async (name, isPrivate, member) => {
+    try {
+        const res = await axios.post(`${API_URL}/room`, { name, isPrivate, member }, { withCredentials: true });
+        return res.data.data;
+    } catch (err) {
+        console.error(err);
+        throw new Error("Failed to create room")
+    }
 }
