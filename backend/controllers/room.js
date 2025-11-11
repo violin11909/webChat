@@ -23,8 +23,9 @@ exports.getRooms = async (req, res) => {
     (frontend) room name will not display it will display only other user's profile and name
     for group room, there will be create room button, click it will pop up modal to input room name and select members
 */
-exports.createRoom = async (name, isPrivate, member) => {
+exports.createRoom = async (req, res) => {
     try {
+        const { name, isPrivate, member } = req.body;
         if (!name || !member || typeof isPrivate !== "boolean") {
             return res.status(400).json({ success:false, message: 'Missing required fields' });
         }

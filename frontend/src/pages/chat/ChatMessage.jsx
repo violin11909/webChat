@@ -34,12 +34,28 @@ function MessageItem({ msg }) {
 }
 
 
-function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile }) {
+function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile, currentUser, users }) {
     if (!selectedRoom) return;
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
         setOnChangProfile(true)
+    }
+    let displayName = selectedRoom.name;
+    let displayImage = selectedRoom.profile ? selectedRoom.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
+    let allowEditProfile = !selectedRoom.isPrivate;
+    
+    if (selectedRoom.isPrivate && currentUser && users) {
+      const otherUserId = selectedRoom.member.find(id => id !== currentUser._id);
+      
+      if (otherUserId) {
+        const otherUser = users.find(user => user._id === otherUserId);
+        
+        if (otherUser) {
+          displayName = otherUser.name;
+          displayImage = otherUser.profile ? otherUser.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
+        }
+      }
     }
 
     return (
@@ -60,12 +76,12 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             <header className="flex items-center justify-between p-4 bg-[#FF9A00] m-4 rounded-lg">
                 <div className="flex items-center">
                     <img
-                        src={selectedRoom.profile ? selectedRoom.profile : "https://i.postimg.cc/XNcYzq3V/user.png"}
-                        className="w-15 h-15 rounded-full mr-3 cursor-pointer object-cover bg-white"
+                        src={displayImage} 
+                        className={`w-15 h-15 rounded-full mr-3 ${allowEditProfile ? 'cursor-pointer' : ''} object-cover bg-white`}
                         onClick={handleChangeProfile}
                     />
                     <div>
-                        <h2 className="font-semibold text-white">{selectedRoom.name}</h2>
+                        <h2 className="font-semibold text-white">{displayName}</h2>
                         <p className="text-sm text-white">Online</p>
                     </div>
                 </div>

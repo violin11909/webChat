@@ -25,7 +25,7 @@ export const updateRoomProfile = async (filePath, roomId) => {
 
 export const createRoom = async (name, isPrivate, member) => {
     try {
-        const res = await axios.post(`${API_URL}/room`, { name, isPrivate, member });
+        const res = await axios.post(`${API_URL}/room`, { name, isPrivate, member }, { withCredentials: true });
         return res.data.data;
     } catch (err) {
         console.error(err);
