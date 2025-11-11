@@ -3,22 +3,36 @@ import App from "../App";
 import Register from "../pages/auth/Register"
 import Login from "../pages/auth/Login";
 import Home from "../pages/home/Home"
+
+import ProtectedRoute from "./protect";
+import PublicRoute from "./public";
+
 const router = createBrowserRouter([
   {
-    path: "/",
-    element: <Home />,
+    element: <ProtectedRoute />,
+    children: [
+      {
+        path: "/",
+        element: <Home />,
+      },
+      {
+        path: "/chat",
+        element: <App />,
+      },
+    ],
   },
   {
-    path: "/register",
-    element: <Register />,
-  },
-  {
-    path: "/Login",
-    element: <Login />,
-  },
-  {
-    path: "/chat",
-    element: <App />,
+    element: <PublicRoute />,
+    children: [
+      {
+        path: "/register",
+        element: <Register />,
+      },
+      {
+        path: "/login",
+        element: <Login />,
+      },
+    ],
   },
 ]);
 
