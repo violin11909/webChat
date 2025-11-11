@@ -10,6 +10,4 @@ router.put("/update-profile", updateRoomProfile)
 router.post("/save-content", saveContent)
 router.post("/join-room", joinRoom)
 
-
-
 module.exports = router;
