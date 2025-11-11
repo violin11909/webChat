@@ -21,7 +21,6 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             enabled: !!selectedRoom._id,
         });
 
-        console.log('select room = ', selectedRoom)
     const mapMemberProfile = useMemo(() => {
         if (!selectedRoom || !selectedRoom.member) return {};
 
@@ -31,11 +30,8 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         }, {});
     }, [selectedRoom]);
 
-    const {rooms} = useQueryData()
-
-
-    console.log(rooms)
-    console.log(selectedRoom)
+    // console.log(rooms)
+    console.log('sleect rooom',selectedRoom)
     console.log(mapMemberProfile)
 
     const { user } = useAuth();

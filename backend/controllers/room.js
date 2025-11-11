@@ -27,21 +27,23 @@ exports.createRoom = async (req, res) => {
     try {
         const { name, isPrivate, member } = req.body;
         if (!name || !member || typeof isPrivate !== "boolean") {
-            return res.status(400).json({ success:false, message: 'Missing required fields' });
+            return res.status(400).json({ success: false, message: 'Missing required fields' });
         }
 
         if (isPrivate) {
             const friend = await User.findById(member[1])
             if (!friend) {
-                return res.status(404).json({ success:false, message: 'User not found' });
+                return res.status(404).json({ success: false, message: 'User not found' });
             }
         }
 
-        const savedRoom = await Room.create({ name, member, isPrivate });
-        res.status(201).json({ success:true, message: 'Room created successfully', data: savedRoom });
+        const newRoom = await Room.create({ name, member, isPrivate });
+        // 2. สั่ง populate บน document ที่สร้างเสร็จแล้ว และรอจน populate เสร็จ
+        const savedRoom = await newRoom.populate('member', 'profile name'); console.log(savedRoom)
+        return res.status(201).json({ success: true, message: 'Room created successfully', data: savedRoom });
     } catch (err) {
         console.error('Error creating room:', err.message);
-        res.status(500).json({ success:false, message: 'Server error' });
+        return res.status(500).json({ success: false, message: 'Server error' });
     }
 }
 

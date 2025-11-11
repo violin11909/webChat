@@ -1,19 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { createRoom } from '../../service/roomService'; 
+import { createRoom } from '../../service/roomService';
 import { ChatItem } from "./ChatItem";
 import { UserItem } from "./UserItem";
+import { useQueryData } from "../../contexts/QueryContext";
 
-function ChatList({ selectedRoom, setSelectedRoom, rooms, users, currentUser, isUploading, setOnChangProfile }) {
+function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploading, setOnChangProfile }) {
 
   const [activeTab, setActiveTab] = useState("All");
-
-  const getTypeRooms = (isPrivate) => {
-    if (!rooms) return [];
-    return rooms.filter((room) => room.isPrivate == isPrivate);
-  }
-
   const tabs = ["All", "Groups", "Private"]
+  const { rooms } = useQueryData();
+  const queryClient = useQueryClient();
+
 
   const groupRooms = useMemo(() => {
     if (!rooms) return [];
@@ -25,19 +23,19 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, users, currentUser, is
     return rooms.filter((room) => room.isPrivate === true);
   }, [rooms]);
 
-  const queryClient = useQueryClient();
-  const createRoomMutation = useMutation({
-    mutationFn: ({ name, isPrivate, member }) => createRoom(name, isPrivate, member),
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['rooms'] });
-      setSelectedRoom(data);
-    },
-    onError: (error) => {
-      console.error("Error creating room:", error);
-    } 
-  });
+  // const createRoomMutation = useMutation({
+  //   mutationFn: ({ name, isPrivate, member }) => createRoom(name, isPrivate, member),
+  //   onSuccess: (data) => {
+  queryClient.invalidateQueries({ queryKey: ['rooms'] });
+  //     console.log(data)
+  //     setSelectedRoom(data);
+  //   },
+  //   onError: (error) => {
+  //     console.error("Error creating room:", error);
+  //   }
+  // });
 
-  const handleSelectUser = (clickedUser) => {
+  const handleSelectUser = async (clickedUser) => {
     //check if private room between current user and clicked user already exists
     const existingRoom = privateRooms.find((room) => {
       // didnot check other logic because private room handle isPrivate equals true already
@@ -50,11 +48,19 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, users, currentUser, is
     } else {
       //create new private room
       const roomName = `Private Chat: ${currentUser.name} & ${clickedUser.name}`;
-      createRoomMutation.mutate({
+      // createRoomMutation.mutate({
+      //   name: roomName,
+      //   isPrivate: true,
+      //   member: [currentUser._id, clickedUser._id]
+      // });
+      const res = await createRoom({
         name: roomName,
         isPrivate: true,
         member: [currentUser._id, clickedUser._id]
-      });
+      })
+      queryClient.invalidateQueries({ queryKey: ['rooms'] });
+      setSelectedRoom(res);
+
     }
   }
 
@@ -70,7 +76,7 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, users, currentUser, is
       <div className="flex flex-row gap-2 p-2 px-0">
         {tabs.map((tab, index) => (
           <div
-          key={index}
+            key={index}
             className={`w-20 text-white text-center ${activeTab === tab ? "bg-[#FF9A00]" : ""} rounded-sm cursor-pointer`}
             onClick={() => setActiveTab(tab)}>
             {tab}
@@ -101,9 +107,9 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, users, currentUser, is
           <h2 className="flex-1 text-xl font-semibold text-white mb-2">Private</h2>
           <div className="space-y-4">
             {users.map((user) => (
-              <UserItem 
-                key={user._id} 
-                user={user} 
+              <UserItem
+                key={user._id}
+                user={user}
                 onSelectUser={handleSelectUser}
                 selectedRoom={selectedRoom}
                 currentUser={currentUser}
