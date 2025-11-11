@@ -20,10 +20,6 @@ function App() {
 
   const { user: currentUser } = useAuth();
 
-  const { data: rooms, isLoading: isRoomLoading, isError: isRoomError, } = useQuery({
-    queryKey: ['rooms'], queryFn: () => getRooms(), enabled: !!currentUser,
-  });
-
   const { data: users, isLoading: isAllUsersLoading } = useQuery({
     queryKey: ['users'], queryFn: () => getUsers(), enabled: !!currentUser,
   });
