@@ -39,31 +39,32 @@ export const useUpdateRoomProfile = () => {
     });
 };
 
-export const useUpdateUserProfile = () => {
-    const { user, setUser } = useAuth();
+// export const useUpdateUserProfile = () => {
+//     const queryClient = useQueryClient();
 
-    return useMutation({
-        mutationFn: ({ filePath, userId }) => updateUserProfile(filePath, userId),
-        onMutate: async ({ filePath, userId }) => {
+//     return useMutation({
+//         mutationFn: ({ filePath, userId }) => updateUserProfile(filePath, userId),
+//         onMutate: async ({ filePath, userId }) => {
+//             await queryClient.cancelQueries({ queryKey: ['user'] });
 
-            const previousData = user;
-            
-            setUser(prev => ({
-                ...prev,
-                profile: filePath
-            }))
+//             const previousUserData = queryClient.getQueryData(['user']);
+//             queryClient.setQueryData(['user'], (oldData) => {
+//                 if (!oldData) return null;
+//                 return { ...oldData, profile: filePath }
+//             })
+//             console.log("new user  ")
 
-            return { previousData };
-        },
-        onError: (err, variables, context) => {
-            if (context?.previousData) setUser(context.previousData);
-        },
-        onSuccess: (updatedUser) => {
-            if (!updatedUser) return;
-            setUser(updatedUser)
+//             return { previousUserData };
+//         },
+//         onError: (err, variables, context) => {
+//             if (context?.previousUserData) queryClient.setQueryData(['user'], context.previousUserData);
+//         },
+//         onSuccess: (updatedUser) => {
+//             if (!updatedUser) return;
+//             queryClient.setQueryData(['user'], updatedUser)
 
 
-        },
-    });
-};
+//         },
+//     });
+// };
 

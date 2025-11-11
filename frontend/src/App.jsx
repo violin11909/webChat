@@ -3,23 +3,18 @@ import Sidebar from './components/layout/Sidebar';
 import ChatMessage from './pages/chat/ChatMessage';
 import ChatList from './pages/chat/ChatList';
 import { useState } from 'react';
-import { useQuery } from "@tanstack/react-query";
-import { getRooms } from './service/roomService';
-
+import { useQueryData } from './contexts/QueryContext';
 
 
 function App() {
+  const { rooms } = useQueryData();
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [onChangProfile, setOnChangProfile] = useState(false);
   const [isChangingUserProfile, setIsChangingUserProfile] = useState(false);
 
-  const { data: rooms, isLoading: isRoomLoading, isError: isRoomError, } = useQuery({
-    queryKey: ['rooms'], queryFn: () => getRooms(), enabled: true, //should be !!user
-  });
-
   const handleCloseUserProfile = () => {
-    if (!isChangingUserProfile) return;
+    if (!isChangingUserProfile || isUploading) return;
     setIsChangingUserProfile(false)
   }
 

@@ -6,18 +6,19 @@ const RoomSchema = new mongoose.Schema({
         type: String,
         required: [true, 'Please add a name']
     },
-    member: {
-        type: [mongoose.Schema.ObjectId],
-        required: true,
-        default: []
-    },
+    member: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User"
+        }
+    ],
     isPrivate: {
         type: Boolean,
         required: true
     },
     profile: {
         type: String,
-        default : "somepicture"
+        default: "somepicture"
     },
     lastContent: {
         type: mongoose.Schema.ObjectId,

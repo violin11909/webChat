@@ -9,12 +9,13 @@ export const getMe = async () => {
     } catch (err) {
         console.error(err)
         throw new Error("Authenticated failed");
-        
+
     }
 
 }
 
 export const updateUserProfile = async (filePath, userId) => {
+
     try {
         const res = await axios.put(`${API_URL}/user/update-profile`, { filePath, userId });
         return res.data.data;

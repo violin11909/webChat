@@ -33,6 +33,7 @@ function ChatList({ selectedRoom, setSelectedRoom, rooms, isUploading, setOnChan
       <div className="flex flex-row gap-2 p-2 px-0">
         {tabs.map((tab, index) => (
           <div
+          key={index}
             className={`w-20 text-white text-center ${activeTab === tab ? "bg-[#FF9A00]" : ""} rounded-sm cursor-pointer`}
             onClick={() => setActiveTab(tab)}>
             {tab}

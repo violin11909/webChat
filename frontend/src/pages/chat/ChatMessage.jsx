@@ -1,50 +1,93 @@
-import { useState } from 'react';
 import EditProfile from './EditProfile';
-import { HiPhone, HiVideoCamera, HiEllipsisHorizontal, HiPaperClip, HiMicrophone } from 'react-icons/hi2';
+import { HiPaperClip, HiMicrophone } from 'react-icons/hi2';
+import { useQuery } from '@tanstack/react-query';
 
-const messages = [
-    { id: 2, sender: false, content: 'มึงว่างานมันเยอะไปปะเทอมนี้', time: '9:20 AM' },
-    { id: 3, sender: true, content: 'เออ', time: '9:23 AM' },
-    { id: 4, sender: false, content: 'เทอมหน้ากุเรียน algo อีก ชห', time: '9:25 AM' },
-    { id: 5, sender: true, content: 'ชิวๆ', time: '9:27 AM' },
-];
-
-
-function MessageItem({ msg }) {
-    if (msg.type === 'divider') {
-        return <div className="text-center text-gray-500 text-sm my-4">{msg.content}</div>;
-    }
-
-    const isSender = msg.sender;
-
-    return (
-        <div className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}>
-            <div className="flex items-end max-w-lg">
-
-                <div className={`px-4 py-3 rounded-xl ${isSender ? 'bg-[#FF9A00] text-black rounded-br-none' : 'bg-white text-black shadow-md rounded-bl-none'}`}>
-                    <p>{msg.content}</p>
-                </div>
-
-                <span className={`text-xs text-gray-400 mx-2 ${isSender ? 'order-first' : ''}`}>
-                    {msg.time}
-                </span>
-            </div>
-        </div>
-    );
-}
-
+import { getContentsByRoomId, joinRoom } from '../../service/roomService';
+import { sendContent } from '../../listeners/userEvent';
+import { useSaveContent } from '../../hooks/useSaveContent';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMemo, useState } from 'react';
+import { useRef } from 'react';
+import { useLayoutEffect } from 'react';
 
 function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile }) {
     if (!selectedRoom) return;
+
+    const { data: contents, isLoading, isError } =
+        useQuery({
+            queryKey: ['contents', selectedRoom._id],
+            queryFn: () => getContentsByRoomId(selectedRoom._id),
+            enabled: !!selectedRoom._id,
+        });
+
+    const mapMemberProfile = useMemo(() => {
+        if (!selectedRoom || !selectedRoom.member) return {};
+
+        return selectedRoom.member.reduce((acc, m) => {
+            acc[m._id] = [m.profile, m.name];
+            return acc;
+        }, {});
+    }, [selectedRoom]);
+
+    const { user } = useAuth();
+    const [message, setMessage] = useState("")
+    const saveContentMutation = useSaveContent();
+    const [isMember, setIsMember] = useState(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
         setOnChangProfile(true)
     }
 
+    const sendUserContent = (roomId, content, type) => {
+        if (type == 'text') {
+            const messageData = { roomId: roomId, content: content, type: type, senderId: user._id, createdAt: new Date() }
+            sendContent(messageData)
+            saveContentMutation.mutate(messageData)
+        }
+        else if (type == 'image') {
+
+            sendContent(roomId, content, type)
+        }
+        else {
+            alert('Unknown message')
+        }
+        setMessage("")
+    }
+
+    const handleJoinRoom = async () => {
+        const res = await joinRoom(selectedRoom._id, user._id);
+        if (res && res.success) {
+            setIsMember(true)
+            return;
+        }
+        setIsMember(false)
+    }
+
+    const messagesEndRef = useRef(null);
+
+    useLayoutEffect(() => {
+        if (messagesEndRef.current) {
+            const container = messagesEndRef.current;
+            container.scrollTop = container.scrollHeight;
+        }
+    }, [contents]);
+
+
+    if (!contents) return;
+
+
     return (
         <div className="bg-[#313131] flex flex-col h-auto grow my-8 mr-8 rounded-lg shadow-2xl relative">
-             {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
+            {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
+            {!isMember && (<div className="bg-[#313131]  absolute inset-0 flex flex-col justify-center items-center rounded-lg gap-5">
+                <div>Do you want to join  <span className='font-bold text-xl text-[#ff9a00]'>"{selectedRoom.name}"</span> room</div>
+                <div className='flex flex-row gap-5 w-full justify-center'>
+                    <button className={`bg-green-400 p-3 w-30 cursor-pointer`} onClick={handleJoinRoom}>Join</button>
+                </div>
+
+            </div>)}
+
             {onChangProfile && (
                 <EditProfile
                     setOnChangProfile={setOnChangProfile}
@@ -78,13 +121,12 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             </header>
 
 
-            <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#313131]">
-                {messages.map(msg => (
-                    <MessageItem key={msg.id} msg={msg} />
-                ))}
+            <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#313131]" ref={messagesEndRef}>
+                {contents.map(content => (<MessageItem key={content._id} content={content} memberProfile={mapMemberProfile[content.senderId][0]} memberName={mapMemberProfile[content.senderId][1]} />))}
+
             </main>
 
-            <footer className="p-4 bg-[#313131] rounded-lg">
+            <section className="p-4 bg-[#313131] rounded-lg text-black">
                 <div className="flex items-center bg-gray-100 rounded-lg p-2">
                     <button className="p-2 text-gray-600 hover:text-blue-500">
                         <HiPaperClip size={24} />
@@ -93,15 +135,56 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                         type="text"
                         placeholder="Enter Your Message"
                         className="flex-1 bg-transparent px-4 py-2 outline-none"
+                        value={message}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                sendUserContent(selectedRoom._id, message, "text");
+                            }
+                        }}
+                        onChange={(e) => setMessage(e.target.value)}
                     />
-                    <button className="p-2 text-gray-600 hover:text-blue-500">
+                    <button className="p-2 text-gray-600 hover:text-blue-500 cursor-pointer">
                         <HiMicrophone size={24} />
                     </button>
                 </div>
-            </footer>
+            </section>
+
         </div>
     );
 }
+
+
+function MessageItem({ content, memberProfile, memberName }) {
+    if (!content) return;
+    const thiaDate = new Date(content.createdAt).toLocaleTimeString("th-TH", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+
+    return (
+        <div className={`flex flex-row gap-3`}>
+
+            <img src={memberProfile} alt="sender-profile" className='w-13 h-13 rounded-full object-cover bg-white' />
+
+            <div className="flex max-w-lg flex-col">
+                <div className='flex flex-row gap-2 items-end'>
+                    <span className='font-bold'> {memberName}</span>
+                    <span className='text-xs pb-0.5'>{thiaDate}</span>
+                </div>
+
+                <div className={`flex self-start px-4 py-3 rounded-xl bg-white text-black shadow-md rounded-tl-none`}>
+                    <span>{content.content}</span>
+                </div>
+
+
+            </div>
+
+
+        </div>
+    );
+}
+
 
 export default ChatMessage;
 

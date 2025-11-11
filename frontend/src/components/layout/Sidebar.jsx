@@ -23,7 +23,7 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
           <img
             src={user.profile}
             alt="user-profile"
-            className="w-12 h-12 rounded-full mb-8 cursor-pointer z-50 relative"
+            className="w-12 h-12 rounded-full mb-8 cursor-pointer z-50 relative bg-white"
             onClick={() => setIsChangingUserProfile(true)}
           />
 
