@@ -12,6 +12,7 @@ export const getMe = async () => {
 }
 
 export const updateUserProfile = async (filePath, userId) => {
+
     try {
         const res = await axios.put(`${API_URL}/user/update-profile`, { filePath, userId });
         return res.data.data;

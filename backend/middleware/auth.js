@@ -11,8 +11,6 @@ exports.protect = async (req, res, next) => {
     } else if (req.cookies && req.cookies.token) {
         token = req.cookies.token;
     }
-    console.log('token=', token)
-
 
     // Make sure token exists
     if (!token) {

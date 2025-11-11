@@ -2,29 +2,24 @@ const { Server } = require("socket.io");
 const jwt = require('jsonwebtoken')
 
 const User = require('../models/User')
-const { saveMessage } = require("../controllers/message")
-const { createRoom } = require("../controllers/room")
+const { createRoom, saveContent } = require("../controllers/room")
 
 
 let io;
 
+let roomList
 function initSocket(server) {
     io = new Server(server, {
-        // cors: {
-        //     origin: "http://localhost:3000",
-        //     methods: ["GET", "POST"]
-        // }
+        cors: {
+            origin: "http://localhost:5173",
+            methods: ["GET", "POST"]
+        }
     });
 
     io.use(async (socket, next) => {
-        // const token = socket.handshake.auth.token;
-
-        // const socket = io('http://localhost:5000', {
-        //     auth: {
-        //         token: token
-        //     }
-        // }); --> ส่งจาก frontend
-        const token = socket.handshake.query.token;//for test only
+        let token;
+        if (socket.handshake.auth.token) token = socket.handshake.auth.token;
+        else if (socket.handshake.query.token) token = socket.handshake.query.token;
 
         if (!token) {
             return next(new Error('Authentication error: No token provided'));
@@ -49,74 +44,61 @@ function initSocket(server) {
     });
 
     io.on('connection', (socket) => {
+        console.log(socket.id)
         console.log(`🟢 User '${socket.data.user.name}' connected`);
+        [...socket.rooms].forEach(r => r !== socket.id && socket.leave(r));
 
         socket.on('send-message', async (data) => {
             try {
-                const senderId = socket.data.user._id;
-                const { roomId, content, type } = data;
-                const savedMessage = await saveMessage(roomId, content, type, senderId);
+                const { roomId } = data
+                console.log(socket.data.user.name, 'send msg', data);
+                console.log(socket.rooms);
+                const res = await saveContent(data);
 
-                if (!savedMessage) {
-                    socket.emit("error-message", "Failed to send message!");
-                    return;
-                }
-                io.to(roomId).emit('receive-message', savedMessage);
-                // const sendFriendMessage = () => {
-                //     const messageData = {
-                //         senderId: Id
-                //         receiverId: Id,
-                //         message: "project ไร เยอะนักหนาวะ"
-                //     };
-                //     socket.emit('send-message-to-friend', messageData);
-                // };--> frontend
+                if (res) io.to(roomId).emit('receive-message', res); //populate เเล้ว
 
             } catch (err) {
                 socket.emit('error-message', err.message);
-                return;
             }
 
         });
 
         socket.on("join-room", async (roomId) => {
+            console.log(socket.data.user.name, 'room: ', socket.rooms)
+            console.log(socket.data.user.name, 'join room: ', roomId);
             if (!roomId) {
                 socket.emit("error-message", "Room not found!");
                 return;
             }
             socket.join(roomId);
+            console.log(socket.data.user.name, 'room: ', socket.rooms)
+
         });
 
         socket.on("leave-room", async (roomId) => {
+            console.log(socket.data.user.name, 'leave room: ', roomId)
             if (!roomId) {
                 socket.emit("error-message", "Room not found!");
                 return;
             }
             socket.leave(roomId);
+            console.log(socket.data.user.name, 'room now: ', socket.rooms);
+
         });
 
         socket.on('create-room', async (data) => {
             try {
-                const { name, isPrivate, friendId } = data;
 
-                if (!name || typeof isPrivate !== "boolean") {
-                    socket.emit("error-message", "Missing required room data!");
-                    return;
-                }
-                if (isPrivate) {
-                    if (!friendId) {
-                        socket.emit("error-message", "Friend not found!");
-                        return;
-                    }
-                }
-                const member = isPrivate ? [socket.data.user._id, friendId] : [socket.data.user._id];
-                const createdRoom = await createRoom(name, isPrivate, member);
+                const createdRoom = await createRoom(data);
 
                 if (!createdRoom) {
                     socket.emit("error-message", "Failed to create room!");
                     return;
                 }
                 socket.emit("success-message", "Create room successful!");
-                socket.join(createdRoom._id.toString());
+                socket.emit("new-room", createdRoom);
+                console.log('new room = ', createdRoom.name)
+                // socket.join(createdRoom._id.toString());
 
             } catch (err) {
                 socket.emit("error-message", err.message);

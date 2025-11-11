@@ -1,6 +1,11 @@
+
+import { socket } from '../../listeners/socketClient';
+
 export function ChatItem({ room, setSelectedRoom, selectedRoom, setOnChangProfile }) {
 
   const handleSelectRoom = (room) => {
+    if (selectedRoom) socket.emit("leave-room", selectedRoom._id);
+    socket.emit("join-room", room._id);
     setSelectedRoom(room);
     setOnChangProfile(false);
   }

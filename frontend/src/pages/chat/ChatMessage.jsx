@@ -1,66 +1,138 @@
-import { useState } from 'react';
 import EditProfile from './EditProfile';
-import { HiPhone, HiVideoCamera, HiEllipsisHorizontal, HiPaperClip, HiMicrophone } from 'react-icons/hi2';
+import { HiPaperClip, HiMicrophone } from 'react-icons/hi2';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
-const messages = [
-    { id: 2, sender: false, content: 'มึงว่างานมันเยอะไปปะเทอมนี้', time: '9:20 AM' },
-    { id: 3, sender: true, content: 'เออ', time: '9:23 AM' },
-    { id: 4, sender: false, content: 'เทอมหน้ากุเรียน algo อีก ชห', time: '9:25 AM' },
-    { id: 5, sender: true, content: 'ชิวๆ', time: '9:27 AM' },
-];
+import { getContentsByRoomId, joinRoom } from '../../service/roomService';
+import { sendContent } from '../../listeners/userEvent';
+import { useSaveContent } from '../../hooks/useSaveContent';
+import { useAuth } from '../../contexts/AuthContext';
+import { useMemo, useState } from 'react';
+import { useRef } from 'react';
+import { useLayoutEffect } from 'react';
 
-
-function MessageItem({ msg }) {
-    if (msg.type === 'divider') {
-        return <div className="text-center text-gray-500 text-sm my-4">{msg.content}</div>;
-    }
-
-    const isSender = msg.sender;
-
-    return (
-        <div className={`flex ${isSender ? 'justify-end' : 'justify-start'}`}>
-            <div className="flex items-end max-w-lg">
-
-                <div className={`px-4 py-3 rounded-xl ${isSender ? 'bg-[#FF9A00] text-black rounded-br-none' : 'bg-white text-black shadow-md rounded-bl-none'}`}>
-                    <p>{msg.content}</p>
-                </div>
-
-                <span className={`text-xs text-gray-400 mx-2 ${isSender ? 'order-first' : ''}`}>
-                    {msg.time}
-                </span>
-            </div>
-        </div>
-    );
-}
-
+import { socket } from '../../listeners/socketClient';
+import { useEffect } from 'react';
 
 function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile, currentUser, users }) {
     if (!selectedRoom) return;
+    const { user } = useAuth();
+
+    const friendProfile = useMemo(() => {
+        if (selectedRoom.isPrivate && selectedRoom.member && user) {
+
+            const friend = selectedRoom.member.find((u) => u._id !== user._id);
+            return friend ? friend.profile : null;
+        }
+        return null; // ถ้าไม่ใช่ Private room หรือหาไม่เจอ
+    }, [selectedRoom, user]);
+
+
+    const { data: contents, isLoading, isError } =
+        useQuery({
+            queryKey: ['contents', selectedRoom._id],
+            queryFn: () => getContentsByRoomId(selectedRoom._id),
+            enabled: !!selectedRoom._id,
+        });
+
+    const queryClient = useQueryClient();
+    useEffect(() => {
+        if (!selectedRoom || !selectedRoom._id) return;
+
+        const handleRecieveMessage = (msg) => {
+            console.log('        ')
+            console.log('receive msg = ', msg)
+            queryClient.setQueryData(['contents', selectedRoom._id], (oldContents) => {
+                if (!oldContents) return [msg];
+
+                const isExisting = oldContents.some(content => content._id === msg._id);
+                if (isExisting) return oldContents;
+                return [...oldContents, msg];
+            });
+        };
+        socket.on('receive-message', handleRecieveMessage);
+
+        //    Cleanup Function (สำคัญมาก!)
+        //    จะทำงานเมื่อ component unmount หรือ selectedRoom._id เปลี่ยน
+        return () => {
+            socket.off('receive-message', handleRecieveMessage);
+        };
+
+    }, [queryClient, selectedRoom._id]);
+
+
+    const mapMemberProfile = useMemo(() => {
+        if (!selectedRoom || !selectedRoom.member) return {};
+
+        return selectedRoom.member.reduce((acc, m) => {
+            acc[m._id] = [m.profile, m.name];
+            return acc;
+        }, {});
+    }, [selectedRoom]);
+
+
+
+    const [message, setMessage] = useState("")
+
+    const [isMember, setIsMember] = useState(null)
+
+    useEffect(() => {
+        setIsMember(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
+    }, [])
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
         setOnChangProfile(true)
     }
-    let displayName = selectedRoom.name;
-    let displayImage = selectedRoom.profile ? selectedRoom.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
-    let allowEditProfile = !selectedRoom.isPrivate;
-    
-    if (selectedRoom.isPrivate && currentUser && users) {
-      const otherUserId = selectedRoom.member.find(id => id !== currentUser._id);
-      
-      if (otherUserId) {
-        const otherUser = users.find(user => user._id === otherUserId);
-        
-        if (otherUser) {
-          displayName = otherUser.name;
-          displayImage = otherUser.profile ? otherUser.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
+
+    const sendUserContent = (roomId, content, type) => {
+        if (type == 'text') {
+            const messageData = { roomId: roomId, content: content, type: type, senderId: user._id, createdAt: new Date() }
+            socket.emit("send-message", messageData);
         }
-      }
+        else if (type == 'image') {
+
+            sendContent(roomId, content, type)
+        }
+        else {
+            alert('Unknown message')
+        }
+        setMessage("")
     }
+
+    const handleJoinRoom = async () => {
+        const res = await joinRoom(selectedRoom._id, user._id);
+        if (res) {
+            setSelectedRoom(res);
+            setIsMember(true)
+            socket.emit("join-room", res._id);
+            return;
+        }
+        setIsMember(false)
+    }
+
+    const messagesEndRef = useRef(null); //scroller ล่างสุด
+    useLayoutEffect(() => {
+        if (messagesEndRef.current) {
+            const container = messagesEndRef.current;
+            container.scrollTop = container.scrollHeight;
+        }
+    }, [contents]);
+
+    if (!contents) return;
+    console.log(selectedRoom)
+
 
     return (
         <div className="bg-[#313131] flex flex-col h-auto grow my-8 mr-8 rounded-lg shadow-2xl relative">
-             {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
+            {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
+            {!isMember && (<div className="bg-[#313131]  absolute inset-0 flex flex-col justify-center items-center rounded-lg gap-5">
+                <div>Do you want to join  <span className='font-bold text-xl text-[#ff9a00]'>"{selectedRoom.name}"</span> room</div>
+                <div className='flex flex-row gap-5 w-full justify-center'>
+                    <button className={`bg-green-400 p-3 w-30 cursor-pointer`} onClick={handleJoinRoom}>Join</button>
+                </div>
+
+            </div>)}
+
             {onChangProfile && (
                 <EditProfile
                     setOnChangProfile={setOnChangProfile}
@@ -76,12 +148,12 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             <header className="flex items-center justify-between p-4 bg-[#FF9A00] m-4 rounded-lg">
                 <div className="flex items-center">
                     <img
-                        src={displayImage} 
-                        className={`w-15 h-15 rounded-full mr-3 ${allowEditProfile ? 'cursor-pointer' : ''} object-cover bg-white`}
+                        src={selectedRoom.isPrivate ? friendProfile : selectedRoom.profile}
+                        className={`w-15 h-15 rounded-full mr-3  object-cover bg-white`}
                         onClick={handleChangeProfile}
                     />
                     <div>
-                        <h2 className="font-semibold text-white">{displayName}</h2>
+                        <h2 className="font-semibold text-white">{selectedRoom.name}</h2>
                         <p className="text-sm text-white">Online</p>
                     </div>
                 </div>
@@ -93,14 +165,20 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                 </div> */}
             </header>
 
-
-            <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#313131]">
-                {messages.map(msg => (
-                    <MessageItem key={msg.id} msg={msg} />
-                ))}
+            <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#313131]" ref={messagesEndRef}>
+                {contents.map(content => {
+                    return (
+                        <MessageItem
+                            key={content._id}
+                            content={content}
+                            memberProfile={content.senderId.profile}
+                            memberName={content.senderId.name}
+                        />
+                    );
+                })}
             </main>
 
-            <footer className="p-4 bg-[#313131] rounded-lg">
+            <section className="p-4 bg-[#313131] rounded-lg text-black">
                 <div className="flex items-center bg-gray-100 rounded-lg p-2">
                     <button className="p-2 text-gray-600 hover:text-blue-500">
                         <HiPaperClip size={24} />
@@ -109,15 +187,56 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                         type="text"
                         placeholder="Enter Your Message"
                         className="flex-1 bg-transparent px-4 py-2 outline-none"
+                        value={message}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                                sendUserContent(selectedRoom._id, message, "text");
+                            }
+                        }}
+                        onChange={(e) => setMessage(e.target.value)}
                     />
-                    <button className="p-2 text-gray-600 hover:text-blue-500">
+                    <button className="p-2 text-gray-600 hover:text-blue-500 cursor-pointer">
                         <HiMicrophone size={24} />
                     </button>
                 </div>
-            </footer>
+            </section>
+
         </div>
     );
 }
+
+
+function MessageItem({ content, memberProfile, memberName }) {
+    if (!content) return;
+    const thiaDate = new Date(content.createdAt).toLocaleTimeString("th-TH", {
+        hour: "2-digit",
+        minute: "2-digit",
+    });
+
+
+    return (
+        <div className={`flex flex-row gap-3`}>
+
+            <img src={memberProfile} alt="sender-profile" className='w-13 h-13 rounded-full object-cover bg-white' />
+
+            <div className="flex max-w-lg flex-col">
+                <div className='flex flex-row gap-2 items-end'>
+                    <span className='font-bold'> {memberName}</span>
+                    <span className='text-xs pb-0.5'>{thiaDate}</span>
+                </div>
+
+                <div className={`flex self-start px-4 py-3 rounded-xl bg-white text-black shadow-md rounded-tl-none`}>
+                    <span>{content.content}</span>
+                </div>
+
+
+            </div>
+
+
+        </div>
+    );
+}
+
 
 export default ChatMessage;
 

@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { upload } from '../service/uploadService';
-import { useUpdateRoomProfile, useUpdateUserProfile } from '../hooks/useUpdateProfile';
+import { useUpdateRoomProfile } from '../hooks/useUpdateProfile';
+import { useAuth } from '../contexts/AuthContext';
+import { updateUserProfile } from '../service/userService';
 
 
 const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUploading, setOnChangProfile, setSelectedRoom }) => {
@@ -8,12 +10,9 @@ const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUpload
     const [preview, setPreview] = useState(profile);
     const [onProgress, setOnProgress] = useState(null);
     const diableButton = !selectedFile || isUploading;
-
     const updateRoomMutation = useUpdateRoomProfile();
-    const updateUserMutation = useUpdateUserProfile();
 
-    console.log(profile);
-
+    const { user, setUser } = useAuth();
 
     useEffect(() => {
         if (!selectedFile) {
@@ -57,7 +56,8 @@ const ImageUploader = ({ type, profile, roomId, userId, isUploading, setIsUpload
                 setSelectedRoom(prev => ({ ...prev, profile: url }));
                 updateRoomMutation.mutate({ filePath: url, roomId: roomId });
             } else if (type === "user-profile") {
-                updateUserMutation.mutate({ filePath: url, userId: userId });
+                setUser({ ...user, profile: url })
+                await updateUserProfile(url, user._id)
             }
 
 

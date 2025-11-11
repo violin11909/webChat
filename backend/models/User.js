@@ -20,7 +20,8 @@ const UserSchema = new mongoose.Schema({
     },
     // using firebase or any
     profile: {
-        type: String
+        type: String,
+        default:"https://i.postimg.cc/yNpXxvMJ/user.png"
     },
     resetPasswordToken: String,
     resetPasswordExpire: Date,
