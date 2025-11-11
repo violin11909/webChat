@@ -9,6 +9,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useMemo, useState } from 'react';
 import { useRef } from 'react';
 import { useLayoutEffect } from 'react';
+import { useQueryData } from '../../contexts/QueryContext';
 
 function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile, currentUser, users }) {
     if (!selectedRoom) return;
@@ -20,6 +21,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             enabled: !!selectedRoom._id,
         });
 
+        console.log('select room = ', selectedRoom)
     const mapMemberProfile = useMemo(() => {
         if (!selectedRoom || !selectedRoom.member) return {};
 
@@ -28,6 +30,13 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             return acc;
         }, {});
     }, [selectedRoom]);
+
+    const {rooms} = useQueryData()
+
+
+    console.log(rooms)
+    console.log(selectedRoom)
+    console.log(mapMemberProfile)
 
     const { user } = useAuth();
     const [message, setMessage] = useState("")
@@ -41,18 +50,18 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     let displayName = selectedRoom.name;
     let displayImage = selectedRoom.profile ? selectedRoom.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
     let allowEditProfile = !selectedRoom.isPrivate;
-    
+
     if (selectedRoom.isPrivate && currentUser && users) {
-      const otherUserId = selectedRoom.member.find(id => id !== currentUser._id);
-      
-      if (otherUserId) {
-        const otherUser = users.find(user => user._id === otherUserId);
-        
-        if (otherUser) {
-          displayName = otherUser.name;
-          displayImage = otherUser.profile ? otherUser.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
+        const otherUserId = selectedRoom.member.find(id => id !== currentUser._id);
+
+        if (otherUserId) {
+            const otherUser = users.find(user => user._id === otherUserId);
+
+            if (otherUser) {
+                displayName = otherUser.name;
+                displayImage = otherUser.profile ? otherUser.profile : "https://i.postimg.cc/XNcYzq3V/user.png";
+            }
         }
-      }
     }
 
     const sendUserContent = (roomId, content, type) => {
@@ -91,6 +100,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
 
     if (!contents) return;
+    console.log(contents)
 
 
     return (
@@ -119,7 +129,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             <header className="flex items-center justify-between p-4 bg-[#FF9A00] m-4 rounded-lg">
                 <div className="flex items-center">
                     <img
-                        src={displayImage} 
+                        src={displayImage}
                         className={`w-15 h-15 rounded-full mr-3 ${allowEditProfile ? 'cursor-pointer' : ''} object-cover bg-white`}
                         onClick={handleChangeProfile}
                     />
@@ -136,10 +146,17 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                 </div> */}
             </header>
 
-
             <main className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#313131]" ref={messagesEndRef}>
-                {contents.map(content => (<MessageItem key={content._id} content={content} memberProfile={mapMemberProfile[content.senderId][0]} memberName={mapMemberProfile[content.senderId][1]} />))}
-
+                {contents.map(content => {
+                    return (
+                        <MessageItem
+                            key={content._id}
+                            content={content}
+                            memberProfile={mapMemberProfile[content.senderId][0]}
+                            memberName={mapMemberProfile[content.senderId][1]}
+                        />
+                    );
+                })}
             </main>
 
             <section className="p-4 bg-[#313131] rounded-lg text-black">

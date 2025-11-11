@@ -13,7 +13,7 @@ function Register() {
   const [password, setPassword] = useState("");
   const [isRegisterSuccess, setIsRegisterSuccess] = useState(false);
   const [displayError, setDisplayError] = useState("");
-  const [isFormComplete, setIsFromComplete] = useState(true);
+  const [isFormComplete, setIsFormComplete] = useState(true);
 
   const handleRegister = async () => {
     const trimmedName = name.trim();
