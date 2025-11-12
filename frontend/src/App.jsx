@@ -2,6 +2,7 @@
 import Sidebar from './components/layout/Sidebar';
 import ChatMessage from './pages/chat/ChatMessage';
 import ChatList from './pages/chat/ChatList';
+import CreateGroupForm from './pages/chat/CreateGroupForm';
 import { useState } from 'react';
 
 import { useQueryData } from './contexts/QueryContext';
@@ -16,7 +17,8 @@ function App() {
   const [isUploading, setIsUploading] = useState(false);
   const [onChangProfile, setOnChangProfile] = useState(false);
   const [isChangingUserProfile, setIsChangingUserProfile] = useState(false);
-
+  const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+  const [isMemberListOpen, setIsMemberListOpen] = useState(false);
 
   const { user: currentUser } = useAuth();
 
@@ -50,15 +52,27 @@ function App() {
         isUploading={isUploading}
         setIsUploading={setIsUploading}
         setOnChangProfile={setOnChangProfile}
+        setIsCreatingGroup={setIsCreatingGroup}
+        setIsMemberListOpen={setIsMemberListOpen}
       />
-      <ChatMessage
-        selectedRoom={selectedRoom}
-        setSelectedRoom={setSelectedRoom}
-        isUploading={isUploading}
-        setIsUploading={setIsUploading}
-        onChangProfile={onChangProfile}
-        setOnChangProfile={setOnChangProfile}
-      />
+      {isCreatingGroup ? (
+        <CreateGroupForm
+          users={otherUsers}
+          currentUser={currentUser}
+          setIsCreatingGroup={setIsCreatingGroup}
+        />
+      ) : (
+        <ChatMessage
+          selectedRoom={selectedRoom}
+          setSelectedRoom={setSelectedRoom}
+          isUploading={isUploading}
+          setIsUploading={setIsUploading}
+          onChangProfile={onChangProfile}
+          setOnChangProfile={setOnChangProfile}
+          setIsMemberListOpen={setIsMemberListOpen}
+          isMemberListOpen={isMemberListOpen}
+        />
+      )}
     </div>
   );
 }

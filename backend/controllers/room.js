@@ -147,6 +147,7 @@ exports.createRoom = async (data) => {
     try {
         const { name, isPrivate, member } = data;
         let searchKey;
+        console.log('createRoom data: ', data);
         if (!name || typeof isPrivate !== "boolean" || !member) {
             throw new Error('Missing required fields');
         }

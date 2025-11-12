@@ -7,7 +7,6 @@ export function ChatItem({ room, setSelectedRoom, selectedRoom, setOnChangProfil
     if (selectedRoom) socket.emit("leave-room", selectedRoom._id);
     socket.emit("join-room", room._id);
     setSelectedRoom(room);
-    setSelectedUser(null);
     setOnChangProfile(false);
   }
   return (
