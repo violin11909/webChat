@@ -208,23 +208,34 @@ exports.saveReactEmoji = async (data) => {
         if (!message) {
             throw new Error("Message not found")
         }
-        // const existingEmoji = await Message.find({ reacterId, messageId, emoji } );
-        // if (existingEmoji) {
-        //     throw new Error("Duplicated emoji")
-        // 
 
+        const existingReaction = await ReactEmoji.findOne({ reacterId, messageId });
 
-        const savedEmoji = await ReactEmoji.create({ reacterId, messageId, emoji });
-        const updatedMesssage = await Message.findByIdAndUpdate(messageId, { $push: { reactEmoji: savedEmoji._id } }, { new: true, runValidators: true });
-        const populateMessage = await updatedMesssage.populate([
+        if (existingReaction) {
+            if (existingReaction.emoji === emoji) {
+                // If the user clicks the same emoji, remove the reaction
+                await ReactEmoji.findByIdAndDelete(existingReaction._id);
+                await Message.findByIdAndUpdate(messageId, { $pull: { reactEmoji: existingReaction._id } });
+            } else {
+                // If the user clicks a different emoji, update the reaction
+                await ReactEmoji.findByIdAndUpdate(existingReaction._id, { emoji });
+            }
+        } else {
+            // If there's no existing reaction from the user, create a new one
+            const newReaction = await ReactEmoji.create({ reacterId, messageId, emoji });
+            await Message.findByIdAndUpdate(messageId, { $push: { reactEmoji: newReaction._id } });
+        }
+
+        const updatedMessage = await Message.findById(messageId).populate([
             { path: 'senderId', select: 'profile name' },
-            { path: 'reactEmoji', select: 'emoji', populate: { path: 'reacterId', select: 'profile name' } }
+            { path: 'reactEmoji', populate: { path: 'reacterId', select: 'profile name' } }
         ]);
-        console.log(populateMessage)
-        return populateMessage;
+
+        return updatedMessage;
 
     } catch (err) {
         console.error(err.message)
         throw err;
     }
 }
+

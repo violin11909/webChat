@@ -299,15 +299,14 @@ function MessageItem({ content, memberProfile, memberName, user, socket, roomId 
         minute: "2-digit",
     });
     const isSender = user._id == content.senderId._id
-    const [selectedEmoji, setSelectedEmoji] = useState("")
 
     const emojiList = ["1F602", "1F610", , "1F614", "1F618", "1F620", "1F62D"];
     const toEmoji = (e) => {
         const emoji = String.fromCodePoint(parseInt(e, 16));
         return emoji;
     }
-    const handleReactEmoji = () => {
-        const data = { reacterId: user._id, messageId: content._id, emoji: selectedEmoji, roomId: roomId }
+    const handleReactEmoji = (emoji) => {
+        const data = { reacterId: user._id, messageId: content._id, emoji: emoji, roomId: roomId }
         socket.emit("send-emoji", data)
     }
 
@@ -324,9 +323,9 @@ function MessageItem({ content, memberProfile, memberName, user, socket, roomId 
                     <div className={`max-w-0 overflow-hidden group-hover:max-w-full flex flex-row gap-px items-center ${isSender ? "order-first" : ""}`}>
                         {emojiList.map((e) => (
                             <span
+                                key={e}
                                 className='cursor-pointer hover:scale-130'
-                                onMouseEnter={() => setSelectedEmoji(e)}
-                                onClick={handleReactEmoji}
+                                onClick={() => handleReactEmoji(e)}
                             >
                                 {toEmoji(e)}</span>
                         ))}
