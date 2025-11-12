@@ -378,7 +378,7 @@ function MessageItem({ content, memberProfile, memberName, user, socket, roomId 
     });
     const isSender = user._id == content.senderId._id
 
-    const emojiList = ["1F602", "1F610", , "1F614", "1F618", "1F620", "1F62D"];
+    const emojiList = ["1F602", "1F610", , "1F614", "1F618", "1F620", "1F62D", "1F480"];
     const toEmoji = (e) => {
         const emoji = String.fromCodePoint(parseInt(e, 16));
         return emoji;
