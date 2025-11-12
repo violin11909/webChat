@@ -132,8 +132,9 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     const [isMember, setIsMember] = useState(null)
 
     useEffect(() => {
+        if (!selectedRoom) return;
         setIsMember(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
-    }, [])
+    }, [selectedRoom, mapMemberProfile, user._id])
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
@@ -221,7 +222,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                 )}
             </header>
 
-            {isMemberListOpen && (
+            {isMemberListOpen &&  (
             <div className="absolute inset-0 top-[105px] bg-[#222] bg-opacity-95 text-white rounded-[20px] p-4 m-4 z-40 flex flex-col">
                 <div className="flex justify-between items-center p-6 border-white/10">
                 <h3 className="text-2xl font-bold">Group Members</h3>
@@ -280,7 +281,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             </div>
             )}
 
-            {!isMemberListOpen && (
+            {!isMemberListOpen && isMember && (
             <main className="p-6 space-y-4 overflow-y-auto h-full" ref={messagesEndRef}>
                 {contents.map(content => {
                     return (
@@ -298,7 +299,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             </main>
             )}
             
-            {!isMemberListOpen && (
+            {!isMemberListOpen && isMember && (
             <section className="p-4 bg-[#313131] text-black rounded-[20px]">
                 <div className={`flex items-center  justify-between text-white gap-x-5 relative`}>
 
