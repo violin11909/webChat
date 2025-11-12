@@ -20,7 +20,12 @@ const MessageSchema = new mongoose.Schema({
         ref: 'Room',
         required: true
     },
-    // same field as user 
+     reactEmoji: {
+        type: [mongoose.Schema.ObjectId],
+        ref: 'ReactEmoji',
+        default:[],
+        required: true
+    },
     createdAt: {
         type: Date,
         default: Date.now

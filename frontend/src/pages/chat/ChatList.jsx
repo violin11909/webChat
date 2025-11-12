@@ -73,19 +73,19 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
 
 
   return (
-    <div className="min-w-60 bg-[#313131] p-6 overflow-y-auto my-8 mr-6 rounded-lg shadow-lg relative ">
+    <div className="min-w-60 bg-[#313131] rounded-[20px] shadow-lg relative flex flex-col">
       {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
 
-      <div className="flex flex-row items-center font-bold">
+      <div className="flex flex-row items-center font-bold p-6">
         <h2 className="flex-1 text-2xl  text-white ">Chats</h2>
         <div className="text-2xl">+</div>
       </div>
 
-      <div className="flex flex-row gap-2 p-2 px-0">
+      <div className="flex flex-row gap-2 p-2 px-4">
         {tabs.map((tab, index) => (
           <div
             key={index}
-            className={`w-20 text-white text-center ${activeTab === tab ? "bg-[#FF9A00]" : ""} rounded-sm cursor-pointer`}
+            className={`w-20 text-white text-center ${activeTab === tab ? "bg-[#FF9A00]" : ""} rounded-[14px] cursor-pointer`}
             onClick={() => setActiveTab(tab)}>
             {tab}
           </div>
@@ -93,39 +93,44 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
 
       </div>
 
-      {(activeTab === "All" || activeTab === "Groups") && groupRooms.length != 0 && (
-        <section>
-          <h2 className="flex-1 text-xl font-semibold text-white mb-2">Groups</h2>
-          <div className="space-y-6">
-            {groupRooms.map((room) => (
-              <ChatItem
-                key={room._id}
-                room={room}
-                selectedRoom={selectedRoom}
-                setSelectedRoom={setSelectedRoom}
-                setOnChangProfile={setOnChangProfile} />
-            ))}
-          </div>
-        </section>
-      )}
+      <div className="overflow-y-auto flex-1 pl-4 my-2 mx-2 scrollbar ">
+
+        {(activeTab === "All" || activeTab === "Groups") && groupRooms.length != 0 && (
+          <section>
+            <h2 className="flex-1 text-xl font-semibold text-white mb-2">Groups</h2>
+            <div className="space-y-6">
+              {groupRooms.map((room) => (
+                <ChatItem
+                  key={room._id}
+                  room={room}
+                  selectedRoom={selectedRoom}
+                  setSelectedRoom={setSelectedRoom}
+                  setOnChangProfile={setOnChangProfile} />
+              ))}
+            </div>
+          </section>
+        )}
 
 
-      {(activeTab === "All" || activeTab === "Private") && (
-        <section className="mt-8">
-          <h2 className="flex-1 text-xl font-semibold text-white mb-2">Private</h2>
-          <div className="space-y-4">
-            {users.map((user) => (
-              <UserItem
-                key={user._id}
-                user={user}
-                onSelectUser={handleSelectUser}
-                selectedRoom={selectedRoom}
-                currentUser={currentUser}
-              />
-            ))}
-          </div>
-        </section>
-      )}
+        {(activeTab === "All" || activeTab === "Private") && (
+          <section className="mt-8">
+            <h2 className="flex-1 text-xl font-semibold text-white mb-2">Private</h2>
+            <div className="space-y-4">
+              {users.map((user) => (
+                <UserItem
+                  key={user._id}
+                  user={user}
+                  onSelectUser={handleSelectUser}
+                  selectedRoom={selectedRoom}
+                  currentUser={currentUser}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+      </div>
+
     </div>
   );
 }
