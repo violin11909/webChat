@@ -10,6 +10,7 @@ import { useEffect } from "react";
 
 function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploading, setOnChangProfile }) {
   const [activeTab, setActiveTab] = useState("All");
+  const [selectedUser, setSelectedUser] = useState(null); 
   const tabs = ["All", "Groups", "Private"]
   const { rooms } = useQueryData();
   const { user } = useAuth();
@@ -24,8 +25,10 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
     return rooms.filter((room) => room.isPrivate === true);
   }, [rooms]);
 
-
+  // Handle user selection for private chat
   const handleSelectUser = async (clickedUser) => {
+    setSelectedUser(clickedUser); // Update selected user state
+    setSelectedRoom(null); // Clear selected room when a user is clicked
     const searchKey = (([user._id, clickedUser._id]).sort()).join("-");
     const existingRoom = privateRooms.find((room) => room.searchKey && room.searchKey === searchKey);
 
@@ -104,6 +107,7 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
                   key={room._id}
                   room={room}
                   selectedRoom={selectedRoom}
+                  setSelectedUser={setSelectedUser}
                   setSelectedRoom={setSelectedRoom}
                   setOnChangProfile={setOnChangProfile} />
               ))}
@@ -121,7 +125,7 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
                   key={user._id}
                   user={user}
                   onSelectUser={handleSelectUser}
-                  selectedRoom={selectedRoom}
+                  isSelected={selectedUser?._id === user._id}
                   currentUser={currentUser}
                 />
               ))}
