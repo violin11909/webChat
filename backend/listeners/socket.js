@@ -2,7 +2,7 @@ const { Server } = require("socket.io");
 const jwt = require('jsonwebtoken')
 
 const User = require('../models/User')
-const { createRoom, saveContent } = require("../controllers/room")
+const { createRoom, saveContent, saveReactEmoji } = require("../controllers/room")
 
 
 let io;
@@ -51,10 +51,8 @@ function initSocket(server) {
         socket.on('send-message', async (data) => {
             try {
                 const { roomId } = data
-                console.log(socket.data.user.name, 'send msg', data);
-                console.log(socket.rooms);
-                const res = await saveContent(data);
 
+                const res = await saveContent(data);
                 if (res) io.to(roomId).emit('receive-message', res); //populate เเล้ว
 
             } catch (err) {
@@ -62,6 +60,19 @@ function initSocket(server) {
             }
 
         });
+
+        socket.on('send-emoji', async (data) => {
+            try {
+                const { roomId } = data
+                console.log(socket.data.user.name, 'send emoji', data)
+                const res = await saveReactEmoji(data);
+                if (res) io.to(roomId).emit('receive-emoji', res); //populate เเล้ว
+            } catch (err) {
+                socket.emit('error-message', err.message);
+            }
+
+        });
+
 
         socket.on("join-room", async (roomId) => {
             console.log(socket.data.user.name, 'room: ', socket.rooms)

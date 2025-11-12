@@ -71,13 +71,30 @@ export const joinRoom = async (roomId, userId) => {
     }
 
 }
-export const createRoom = async ({name, isPrivate, member}) => {
+export const createRoom = async ({ name, isPrivate, member }) => {
     try {
         const res = await axios.post(`${API_URL}/room`, { name, isPrivate, member }, { withCredentials: true });
-        console.log( res.data.data);
+        console.log(res.data.data);
         return res.data.data;
     } catch (err) {
         console.error(err);
         throw new Error("Failed to create room")
     }
+}
+
+export const saveEmoji = async (reacterId, messageId, emoji) => {
+    try {
+        if (!reacterId || !messageId || !emoji) {
+            console.error("Missing emoji Id");
+            return;
+        }
+
+        const res = await axios.post(`${API_URL}/room/save-emoji`, { reacterId, messageId, emoji });
+        return res.data.data;
+
+    } catch (err) {
+        console.error(err);
+        throw new Error("Failed to save content")
+    }
+
 }

@@ -1,6 +1,8 @@
 const Room = require('../models/Room')
 const User = require('../models/User')
 const Message = require('../models/Message')
+const ReactEmoji = require('../models/ReactEmoji')
+
 
 exports.getRooms = async (req, res) => {
     try {
@@ -77,10 +79,13 @@ exports.getContentsByRoomId = async (req, res) => {
             return res.status(404).json({ message: 'Room not found' });
         }
 
-        const content = await Message.find({ roomId: roomId }).sort({ createdAt: 1 }).populate('senderId', 'profile name');;
+        const content = await Message.find({ roomId: roomId }).sort({ createdAt: 1 }).populate([
+            { path: 'senderId', select: 'profile name' },
+            { path: 'reactEmoji', select: 'emoji', populate: { path: 'reacterId', select: 'profile name' } }
+        ]);
         // const populateContent = await  content.populate('senderId', 'profile name');
 
-        return res.status(200).json({ message: "Profile updated successfully", data: content});
+        return res.status(200).json({ message: "Profile updated successfully", data: content });
 
     } catch (err) {
         console.error(err.message)
@@ -181,6 +186,42 @@ exports.saveContent = async (data) => {
         const populateContent = await savedContent.populate('senderId', 'profile name');
         await Room.findByIdAndUpdate(roomId, { lastContent: savedContent._id })
         return populateContent;
+
+    } catch (err) {
+        console.error(err.message)
+        throw err;
+    }
+}
+
+exports.saveReactEmoji = async (data) => {
+    try {
+        const { reacterId, messageId, emoji } = data;
+
+        if (!reacterId || !messageId || !emoji) {
+            throw new Error("Missing required emoji data")
+        }
+        const user = await User.findById(reacterId);
+        if (!user) {
+            throw new Error("User not found")
+        }
+        const message = await Message.findById(messageId);
+        if (!message) {
+            throw new Error("Message not found")
+        }
+        // const existingEmoji = await Message.find({ reacterId, messageId, emoji } );
+        // if (existingEmoji) {
+        //     throw new Error("Duplicated emoji")
+        // 
+
+
+        const savedEmoji = await ReactEmoji.create({ reacterId, messageId, emoji });
+        const updatedMesssage = await Message.findByIdAndUpdate(messageId, { $push: { reactEmoji: savedEmoji._id } }, { new: true, runValidators: true });
+        const populateMessage = await updatedMesssage.populate([
+            { path: 'senderId', select: 'profile name' },
+            { path: 'reactEmoji', select: 'emoji', populate: { path: 'reacterId', select: 'profile name' } }
+        ]);
+        console.log(populateMessage)
+        return populateMessage;
 
     } catch (err) {
         console.error(err.message)

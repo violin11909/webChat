@@ -17,7 +17,7 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
   if (!user) return;
 
   return (
-    <div className="min-w-30 bg-[#313131] text-white flex flex-col items-center py-6 justify-between mx-6 my-8 rounded-lg">
+    <div className="min-w-30 bg-[#313131] text-white flex flex-col items-center py-6 justify-between rounded-[20px]">
       <div className="flex flex-col items-center ">
         <div className="relative h-12">
           <img
@@ -43,7 +43,6 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
                 type="user-profile"
                 profile={user.profile}
                 // roomId={roomId}
-                userId={user._id}
                 isUploading={isUploading}
                 setIsUploading={setIsUploading}
                 setOnChangProfile={setIsChangingUserProfile}

@@ -34,7 +34,7 @@ function App() {
 
   return (
 
-    <div className="h-screen w-screen overflow-hidden bg-white flex flex-row z-0" onClick={handleCloseUserProfile}>
+    <div className="h-screen w-screen overflow-hidden bg-white flex flex-row p-6 gap-5" onClick={handleCloseUserProfile}>
       <Sidebar
         isUploading={isUploading}
         setIsUploading={setIsUploading}
@@ -44,9 +44,9 @@ function App() {
       <ChatList
         selectedRoom={selectedRoom}
         setSelectedRoom={setSelectedRoom}
-        rooms={rooms || []}  
-        users={otherUsers || []} 
-        currentUser={currentUser} 
+        rooms={rooms || []}
+        users={otherUsers || []}
+        currentUser={currentUser}
         isUploading={isUploading}
         setIsUploading={setIsUploading}
         setOnChangProfile={setOnChangProfile}
@@ -58,8 +58,6 @@ function App() {
         setIsUploading={setIsUploading}
         onChangProfile={onChangProfile}
         setOnChangProfile={setOnChangProfile}
-        currentUser={currentUser}
-        users={otherUsers || []} 
       />
     </div>
   );
