@@ -11,17 +11,14 @@ function Home() {
   useEffect(() => {
     if (!user) return;
 
-    // Request current online users when entering Home
     socket.emit('get-online-users');
 
     const handleUpdateOnlineUsers = (users) => {
       setOnlineUsers(users);
     };
 
-    // Listen for updates from server
     socket.on('update-online-users', handleUpdateOnlineUsers);
 
-    // Optional: also handle a one-time response for initial data
     socket.on('online-users-list', handleUpdateOnlineUsers);
 
     return () => {
