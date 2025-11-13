@@ -19,7 +19,8 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     if (!selectedRoom) return;
     const { user } = useAuth();
     const mainColor = "[#FF9A00]";
-
+    const queryClient = useQueryClient();
+    const [message, setMessage] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [preview, setPreview] = useState(null);
     const [isSendingImage, setIsSendingImage] = useState(false); //uploading
@@ -94,7 +95,6 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
     const contents = useMemo(() => data?.pages.reduce((acc, page) => [...page.data, ...acc], []) ?? [], [data]);
 
-    const queryClient = useQueryClient();
     useEffect(() => {
         if (!selectedRoom || !selectedRoom._id) return;
 
@@ -158,13 +158,10 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
 
 
-    const [message, setMessage] = useState("")
-    const [isMember, setIsMember] = useState(null)
-
-    useEffect(() => {
-        if (!selectedRoom) return;
-        setIsMember(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
-    }, [selectedRoom, mapMemberProfile, user._id])
+    const isMember = useMemo(() => {
+        if (!selectedRoom || !mapMemberProfile || !user) return false;
+        return !!mapMemberProfile[user._id];
+    }, [selectedRoom, mapMemberProfile, user]);
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
@@ -187,6 +184,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     const handleJoinRoom = async () => {
         const res = await joinRoom(selectedRoom._id, user._id);
         if (res) {
+            await queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setSelectedRoom(res);
             setIsMember(true)
             socket.emit("join-room", res._id);
@@ -196,33 +194,33 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     }
 
     const messagesEndRef = useRef(null);
-    const scrollState = useRef({
+    const scrollState = useRef({ 
         isInitialLoad: true,
-        prevScrollHeight: 0,
+        prevScrollHeight: 0 
     }).current;
-
-    useLayoutEffect(() => {
-        const container = messagesEndRef.current;
-        if (!container) return;
-
-        if (scrollState.isInitialLoad) {
-            container.scrollTop = container.scrollHeight;
-            scrollState.isInitialLoad = false;
-        } else {
-            const scrollOffset = container.scrollHeight - scrollState.prevScrollHeight;
-            if (scrollOffset > 0) {
-                container.scrollTop += scrollOffset;
-            } else {
-                container.scrollTop = container.scrollHeight;
-            }
-        }
-        scrollState.prevScrollHeight = container.scrollHeight;
-
-    }, [contents]);
 
     useEffect(() => {
         scrollState.isInitialLoad = true;
     }, [selectedRoom._id, scrollState]);
+
+    useLayoutEffect(() => {
+        const container = messagesEndRef.current;
+        if (!container || isLoading) return;
+
+        if (scrollState.isInitialLoad) {
+            container.scrollTop = container.scrollHeight;
+            scrollState.isInitialLoad = false;
+        } 
+        else {
+            const scrollOffset = container.scrollHeight - scrollState.prevScrollHeight;
+            if (scrollOffset > 0) {
+                container.scrollTop += scrollOffset;
+            }
+        }
+        
+        scrollState.prevScrollHeight = container.scrollHeight;
+
+    }, [contents, isLoading, scrollState]);
 
     if (isLoading) {
         return (
