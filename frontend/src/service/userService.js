@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { API_URL } from '../../config/firebase';
+import { API_URL } from '../../config/config';
 
 export const getMe = async () => {
     try {
-        const response = await axios.get(`${API_URL}/auth/me`, { withCredentials: true });
+        const response = await axios.get(`${API_URL}/api/v1/auth/me`, { withCredentials: true });
         return response.data.data;
     } catch (err) {
         console.error(err)
@@ -14,7 +14,7 @@ export const getMe = async () => {
 export const updateUserProfile = async (filePath, userId) => {
 
     try {
-        const res = await axios.put(`${API_URL}/user/update-profile`, { filePath, userId });
+        const res = await axios.put(`${API_URL}/api/v1/user/update-profile`, { filePath, userId });
         return res.data.data;
     } catch (err) {
         console.error(err);
@@ -24,7 +24,7 @@ export const updateUserProfile = async (filePath, userId) => {
 
 export const getUsers = async (name = '') => {
     try {
-        const response = await axios.get(`${API_URL}/user`, {
+        const response = await axios.get(`${API_URL}/api/v1/user`, {
             params: { name },
             withCredentials: true
         });

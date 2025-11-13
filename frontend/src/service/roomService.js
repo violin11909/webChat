@@ -1,9 +1,9 @@
 import axios from 'axios';
-import { API_URL } from '../../config/firebase';
+import { API_URL } from '../../config/config';
 
 export const getRooms = async () => {
     try {
-        const res = await axios.get(`${API_URL}/room`);
+        const res = await axios.get(`${API_URL}/api/v1/room`);
         return res.data.data;
 
     } catch (err) {
@@ -13,7 +13,7 @@ export const getRooms = async () => {
 
 export const updateRoomProfile = async (filePath, roomId) => {
     try {
-        const res = await axios.put(`${API_URL}/room/update-profile`, { filePath, roomId });
+        const res = await axios.put(`${API_URL}/api/v1/room/update-profile`, { filePath, roomId });
         return res.data.data;
     } catch (err) {
         console.error(err);
@@ -28,7 +28,7 @@ export const getContentsByRoomId = async (roomId) => {
             console.error("Missing room Id");
             return;
         }
-        const res = await axios.get(`${API_URL}/room/content/${roomId}`);
+        const res = await axios.get(`${API_URL}/api/v1/room/content/${roomId}`);
         return res.data.data;
 
     } catch (err) {
@@ -45,7 +45,7 @@ export const saveContent = async (roomId, content, type, senderId, createdAt) =>
             return;
         }
 
-        const res = await axios.post(`${API_URL}/room/save-content`, { roomId, content, type, senderId, createdAt });
+        const res = await axios.post(`${API_URL}/api/v1/room/save-content`, { roomId, content, type, senderId, createdAt });
         return res.data.data;
 
     } catch (err) {
@@ -62,7 +62,7 @@ export const joinRoom = async (roomId, userId) => {
             return;
         }
 
-        const res = await axios.post(`${API_URL}/room/join-room`, { roomId, userId });
+        const res = await axios.post(`${API_URL}/api/v1/room/join-room`, { roomId, userId });
         return res.data.data;
 
     } catch (err) {
@@ -73,7 +73,7 @@ export const joinRoom = async (roomId, userId) => {
 }
 export const createRoom = async ({ name, isPrivate, member }) => {
     try {
-        const res = await axios.post(`${API_URL}/room`, { name, isPrivate, member }, { withCredentials: true });
+        const res = await axios.post(`${API_URL}/api/v1/room`, { name, isPrivate, member }, { withCredentials: true });
         console.log(res.data.data);
         return res.data.data;
     } catch (err) {
@@ -89,7 +89,7 @@ export const saveEmoji = async (reacterId, messageId, emoji) => {
             return;
         }
 
-        const res = await axios.post(`${API_URL}/room/save-emoji`, { reacterId, messageId, emoji });
+        const res = await axios.post(`${API_URL}/api/v1/room/save-emoji`, { reacterId, messageId, emoji });
         return res.data.data;
 
     } catch (err) {
