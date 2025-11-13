@@ -46,6 +46,7 @@ function App() {
           users={otherUsers}
           currentUser={currentUser}
           setIsCreatingGroup={setIsCreatingGroup}
+          setSelectedRoom={setSelectedRoom}
         />
       ) : (
         <ChatMessage

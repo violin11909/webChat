@@ -3,7 +3,7 @@ import { useState } from "react";
 import { socket } from "../../listeners/socketClient";
 import { useAuth } from "../../contexts/AuthContext";
 
-function CreateGroupForm({ setIsCreatingGroup }) {
+function CreateGroupForm({ setIsCreatingGroup, setSelectedRoom }) {
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
   const [groupName, setGroupName] = useState("");
@@ -13,6 +13,14 @@ function CreateGroupForm({ setIsCreatingGroup }) {
       alert("Please enter a group name.");
       return;
     }
+    // join after create
+    socket.once("new-room", (newRoom) => {
+      if (!newRoom.isPrivate) {
+        socket.emit("join-room", newRoom._id);
+        setSelectedRoom(newRoom);
+      }
+    });
+
     const roomData = {
       name: groupName,
       isPrivate: false,
