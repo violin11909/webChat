@@ -3,6 +3,7 @@ import App from "../App";
 import Register from "../pages/auth/Register"
 import Login from "../pages/auth/Login";
 import Home from "../pages/home/Home"
+import MainLayout from "../components/layout/MainLayout";
 
 import ProtectedRoute from "./protect";
 import PublicRoute from "./public";
@@ -12,14 +13,19 @@ const router = createBrowserRouter([
     element: <ProtectedRoute />,
     children: [
       {
-        path: "/",
-        element: <Home />,
-      },
-      {
-        path: "/chat",
-        element: <App />,
-      },
-    ],
+        element: <MainLayout />,
+        children: [
+          {
+            path: "/",
+            element: <Home />,
+          },
+          {
+            path: "/chat",
+            element: <App />,
+          },
+        ]
+      }
+    ]
   },
   {
     element: <PublicRoute />,

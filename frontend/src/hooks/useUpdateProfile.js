@@ -39,32 +39,37 @@ export const useUpdateRoomProfile = () => {
     });
 };
 
-// export const useUpdateUserProfile = () => {
-//     const queryClient = useQueryClient();
+export const useUpdateUserProfile = () => {
+    const queryClient = useQueryClient();
+    const { setUser } = useAuth();
 
-//     return useMutation({
-//         mutationFn: ({ filePath, userId }) => updateUserProfile(filePath, userId),
-//         onMutate: async ({ filePath, userId }) => {
-//             await queryClient.cancelQueries({ queryKey: ['user'] });
+    return useMutation({
+        mutationFn: ({ userId, name, filePath }) => updateUserProfile({ userId, name, filePath }),
+        onMutate: async ({ name, filePath }) => {
+            await queryClient.cancelQueries({ queryKey: ['user'] });
 
-//             const previousUserData = queryClient.getQueryData(['user']);
-//             queryClient.setQueryData(['user'], (oldData) => {
-//                 if (!oldData) return null;
-//                 return { ...oldData, profile: filePath }
-//             })
-//             console.log("new user  ")
+            const previousUserData = queryClient.getQueryData(['user']);
+            
+            const newUserData = { ...previousUserData };
+            if (name) newUserData.name = name;
+            if (filePath) newUserData.profile = filePath;
 
-//             return { previousUserData };
-//         },
-//         onError: (err, variables, context) => {
-//             if (context?.previousUserData) queryClient.setQueryData(['user'], context.previousUserData);
-//         },
-//         onSuccess: (updatedUser) => {
-//             if (!updatedUser) return;
-//             queryClient.setQueryData(['user'], updatedUser)
+            queryClient.setQueryData(['user'], newUserData);
+            setUser(newUserData); 
 
-
-//         },
-//     });
-// };
+            return { previousUserData };
+        },
+        onError: (err, variables, context) => {
+            if (context?.previousUserData) {
+                queryClient.setQueryData(['user'], context.previousUserData);
+                setUser(context.previousUserData); 
+            }
+        },
+        onSuccess: (updatedUser) => {
+            if (!updatedUser) return;
+            queryClient.setQueryData(['user'], updatedUser);
+            setUser(updatedUser);
+        },
+    });
+};
 

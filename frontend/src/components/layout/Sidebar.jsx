@@ -1,19 +1,30 @@
 import { HiHome, HiChatBubbleLeftRight, HiAdjustmentsHorizontal, HiArrowLeftOnRectangle, } from "react-icons/hi2";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "../../contexts/AuthContext";
-import ImageUploader from '../ImageUploader';
+import { useUI } from "../../contexts/UIContext";
 
-
-function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChangingUserProfile }) {
+function Sidebar() {
   const { user, logout } = useAuth();
+  const { isEditingProfile, setIsEditingProfile } = useUI();
   const location = useLocation();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState(location.pathname);
+  const [activePath, setActivePath] = useState(location.pathname);
 
-  const activeTabDisplay = (tabName) => {
-    return activeTab === tabName ? "bg-[#FF9A00]" : "hover:bg-gray-500";
+  useEffect(() => {
+    setActivePath(location.pathname);
+  }, [location.pathname]);
+
+  const getTabClass = (path) => {
+    if (path === '/setting' && isEditingProfile) {
+      return "bg-[#FF9A00]";
+    }
+    if (path !== '/setting' && activePath === path && !isEditingProfile) {
+      return "bg-[#FF9A00]";
+    }
+    return "hover:bg-gray-500";
   };
+
   if (!user) return;
 
   return (
@@ -24,50 +35,22 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
             src={user.profile}
             alt="user-profile"
             className="w-12 h-12 rounded-full mb-8 cursor-pointer z-50 relative bg-white"
-            onClick={() => setIsChangingUserProfile(true)}
+            onClick={() => setIsEditingProfile(true)}
           />
-
-
-          {isChangingUserProfile && (
-            <div
-              onClick={(e) => e.stopPropagation()}
-              className="absolute inset-0 z-50 w-70 h-100 flex items-center justify-center bg-black/70 backdrop-blur-sm rounded-lg"
-            >
-              {!isUploading && (
-                <div
-                  onClick={() => setIsChangingUserProfile(false)}
-                  className='top-0 right-0 font-bold absolute p-8 text-xl hover:bg-gray-500/40  cursor-pointer rounded-lg w-10 h-10 flex justify-center items-center'>
-                  X</div>
-              )}
-              <ImageUploader
-                type="user-profile"
-                profile={user.profile}
-                // roomId={roomId}
-                isUploading={isUploading}
-                setIsUploading={setIsUploading}
-                setOnChangProfile={setIsChangingUserProfile}
-              // setSelectedRoom={setSelectedRoom}
-              />
-
-            </div>
-          )}
-
         </div>
         <span className="max-w-26 wrap-break-word text-center mt-3">{user.name}</span>
 
-
-        <nav className="flex flex-col space-y-6">
-          <button className={`p-3 ${activeTabDisplay("/")} rounded-lg`} onClick={() => navigate("/")}>
+        <nav className="flex flex-col space-y-6 mt-6">
+          <button className={`p-3 ${getTabClass("/")} rounded-lg`} onClick={() => { navigate("/"); setIsEditingProfile(false); }}>
             <HiHome size={24} />
           </button>
-          <button className={`p-3 ${activeTabDisplay("/chat")} rounded-lg`} onClick={() => navigate("/chat")}>
+          <button className={`p-3 ${getTabClass("/chat")} rounded-lg`} onClick={() => { navigate("/chat"); setIsEditingProfile(false); }}>
             <HiChatBubbleLeftRight size={24} />
           </button>
-          <button className={`p-3 ${activeTabDisplay("/setting")} rounded-lg`}>
+          <button className={`p-3 ${getTabClass("/setting")} rounded-lg`} onClick={() => setIsEditingProfile(prev => !prev)}>
             <HiAdjustmentsHorizontal size={24} />
           </button>
         </nav>
-
       </div>
 
       <button className="p-3 rounded-lg hover:bg-gray-500 cursor-pointer"
@@ -78,7 +61,6 @@ function Sidebar({ setIsUploading, isUploading, isChangingUserProfile, setIsChan
       >
         <HiArrowLeftOnRectangle size={24} />
       </button>
-
     </div>
   );
 }
