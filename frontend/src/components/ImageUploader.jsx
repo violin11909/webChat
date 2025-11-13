@@ -117,7 +117,7 @@ const ImageUploader = ({ type, profile, roomId, isUploading, setIsUploading, set
                     type="file"
                     className="hidden"
                     onChange={handleFileChange}
-                    accept=".png, .jpg, .jpeg, .webp"
+                    accept=".png, .jpg, .jpeg, .webp, .gif"
                 />
             </div>
 

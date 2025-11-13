@@ -1,21 +1,21 @@
 import EditProfile from './EditProfile';
 import { HiPaperClip, HiMicrophone } from 'react-icons/hi2';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-
 import { getContentsByRoomId, joinRoom } from '../../service/roomService';
 import { sendContent } from '../../listeners/userEvent';
 import { useSaveContent } from '../../hooks/useSaveContent';
 import { useAuth } from '../../contexts/AuthContext';
 import { useMemo, useState } from 'react';
 import { useRef } from 'react';
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect } from 'react';    
+import { HiUsers } from "react-icons/hi";
 
 import { socket } from '../../listeners/socketClient';
 import { useEffect } from 'react';
 import ImageUploader from '../../components/ImageUploader';
 import Microphone from './Microphone';
 
-function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile }) {
+function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploading, onChangProfile, setOnChangProfile, isMemberListOpen, setIsMemberListOpen }) {
     if (!selectedRoom) return;
     const { user } = useAuth();
     const mainColor = "[#FF9A00]";
@@ -25,6 +25,14 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     const [isSendingImage, setIsSendingImage] = useState(false); //uploading
     const [urlFirebase, setUrlFirebase] = useState("");
     const [isSendingImageSuccess, setIsSendingImageSuccess] = useState(false);
+    const [searchTerm, setSearchTerm] = useState("");
+
+    const filteredMembers = useMemo(() => {
+        if (!selectedRoom || !selectedRoom.member) return [];
+        return selectedRoom.member.filter((m) =>
+            m.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+    }, [selectedRoom, searchTerm]);
 
 
     useEffect(() => {
@@ -61,7 +69,6 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         }
         return null;
     }, [selectedRoom, user]);
-
 
     const { data: contents, isLoading, isError } =
         useQuery({
@@ -125,8 +132,9 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     const [isMember, setIsMember] = useState(null)
 
     useEffect(() => {
+        if (!selectedRoom) return;
         setIsMember(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
-    }, [])
+    }, [selectedRoom, mapMemberProfile, user._id])
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
@@ -203,9 +211,77 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                         <p className="text-sm text-white">Online</p>
                     </div>
                 </div>
-
+                {!selectedRoom.isPrivate && (
+                    <button
+                    onClick={() => setIsMemberListOpen(!isMemberListOpen)}
+                    className="text-white hover:text-gray-200 text-2xl"
+                    title="Show members"
+                    >
+                    <HiUsers />
+                    </button>
+                )}
             </header>
 
+            {isMemberListOpen &&  (
+            <div className="absolute inset-0 top-[105px] bg-[#222] bg-opacity-95 text-white rounded-[20px] p-4 m-4 z-40 flex flex-col">
+                <div className="flex justify-between items-center p-6 border-white/10">
+                <h3 className="text-2xl font-bold">Group Members</h3>
+                <button
+                    onClick={() => setIsMemberListOpen(false)}
+                    className="text-white text-2xl hover:text-gray-300"
+                    title="Close"
+                >
+                    ✕
+                </button>
+                </div>
+
+                {/* Search bar */}
+                <div className="px-6 py-3">
+                <input
+                    type="text"
+                    placeholder="Search"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full rounded-[14px] py-2 px-4 outline-none bg-[#333] text-white placeholder-gray-400"
+                />
+                </div>
+
+                {/* Member list */}
+                <div className="flex-1 overflow-y-auto space-y-3 p-6 scrollbar">
+                {filteredMembers.length > 0 ? (
+                    filteredMembers.map((m) => (
+                    <div
+                        key={m._id}
+                        className="flex items-center gap-3 p-3 bg-[#333] rounded-lg hover:bg-[#444] transition"
+                    >
+                        <img
+                        src={m.profile || "https://i.postimg.cc/XNcYzq3V/user.png"}
+                        alt={m.name}
+                        className="w-12 h-12 rounded-full object-cover bg-white"
+                        />
+                        <div>
+                        <p className="text-lg font-semibold">{m.name}</p>
+                        <p className="text-sm text-gray-400">{m.email || "Member"}</p>
+                        </div>
+                    </div>
+                    ))
+                ) : (
+                    <p className="text-center text-gray-400 mt-10">No members found</p>
+                )}
+                </div>
+
+                <div className="p-6">
+                <button
+                    onClick={() => setIsMemberListOpen(false)}
+                    className="w-full bg-[#FF9A00] py-3 rounded-lg text-white font-bold hover:bg-orange-500"
+                >
+                    Close
+                </button>
+                </div>
+            </div>
+            )}
+
+            {!isMemberListOpen && isMember && (
             <main className="p-6 space-y-4 overflow-y-auto h-full" ref={messagesEndRef}>
                 {contents.map(content => {
                     return (
@@ -221,7 +297,9 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                     );
                 })}
             </main>
-
+            )}
+            
+            {!isMemberListOpen && isMember && (
             <section className="p-4 bg-[#313131] text-black rounded-[20px]">
                 <div className={`flex items-center  justify-between text-white gap-x-5 relative`}>
 
@@ -261,7 +339,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                                     type="file"
                                     className="hidden"
                                     onChange={handleFileChange}
-                                    accept=".png, .jpg, .jpeg, .webp"
+                                    accept=".png, .jpg, .jpeg, .webp, .gif"
                                 />
                             </label>
 
@@ -285,7 +363,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                     <Microphone setMessage={setMessage} />
 
                 </div>
-            </section>
+            </section>)}
 
         </div>
     );
@@ -299,22 +377,21 @@ function MessageItem({ content, memberProfile, memberName, user, socket, roomId 
         minute: "2-digit",
     });
     const isSender = user._id == content.senderId._id
-    const [selectedEmoji, setSelectedEmoji] = useState("")
 
-    const emojiList = ["1F602", "1F610", , "1F614", "1F618", "1F620", "1F62D"];
+    const emojiList = ["1F602", "1F610", , "1F614", "1F618", "1F620", "1F62D", "1F480"];
     const toEmoji = (e) => {
         const emoji = String.fromCodePoint(parseInt(e, 16));
         return emoji;
     }
-    const handleReactEmoji = () => {
-        const data = { reacterId: user._id, messageId: content._id, emoji: selectedEmoji, roomId: roomId }
+    const handleReactEmoji = (emoji) => {
+        const data = { reacterId: user._id, messageId: content._id, emoji: emoji, roomId: roomId }
         socket.emit("send-emoji", data)
     }
 
     return (
         <div className={`group flex flex-row gap-3 ${isSender ? "justify-end" : ""} hover:bg-white/10`}>
 
-            <img src={memberProfile} alt="sender-profile" className={`w-13 h-13 rounded-full object-cover bg-white ${isSender ? "order-last" : ""}`} />
+            <img src={memberProfile} alt="sender-profile" className={`w-13 h-13 rounded-full object-cover items-center bg-white ${isSender ? "order-last" : ""}`} />
 
             <div className={`flex max-w-lg flex-col`}>
                 <div className={`flex flex-row gap-2 items-end ${isSender ? "justify-end" : ""} relative`}>
@@ -324,9 +401,9 @@ function MessageItem({ content, memberProfile, memberName, user, socket, roomId 
                     <div className={`max-w-0 overflow-hidden group-hover:max-w-full flex flex-row gap-px items-center ${isSender ? "order-first" : ""}`}>
                         {emojiList.map((e) => (
                             <span
+                                key={e}
                                 className='cursor-pointer hover:scale-130'
-                                onMouseEnter={() => setSelectedEmoji(e)}
-                                onClick={handleReactEmoji}
+                                onClick={() => handleReactEmoji(e)}
                             >
                                 {toEmoji(e)}</span>
                         ))}
@@ -355,6 +432,4 @@ function MessageItem({ content, memberProfile, memberName, user, socket, roomId 
     );
 }
 
-
 export default ChatMessage;
-

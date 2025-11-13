@@ -8,8 +8,10 @@ import { useAuth } from "../../contexts/AuthContext";
 import { socket } from '../../listeners/socketClient';
 import { useEffect } from "react";
 
-function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploading, setOnChangProfile }) {
+function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploading, setOnChangProfile, setIsCreatingGroup, isMemberListOpen, setIsMemberListOpen }) {
   const [activeTab, setActiveTab] = useState("All");
+  const [selectedUser, setSelectedUser] = useState(null); 
+  const [searchTerm, setSearchTerm] = useState(""); 
   const tabs = ["All", "Groups", "Private"]
   const { rooms } = useQueryData();
   const { user } = useAuth();
@@ -24,8 +26,12 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
     return rooms.filter((room) => room.isPrivate === true);
   }, [rooms]);
 
-
+  // Handle user selection for private chat
   const handleSelectUser = async (clickedUser) => {
+    setSelectedUser(clickedUser); // Update selected user state
+    setSelectedRoom(null); // Clear selected room when a user is clicked
+    setIsCreatingGroup(false);
+    setIsMemberListOpen(false);
     const searchKey = (([user._id, clickedUser._id]).sort()).join("-");
     const existingRoom = privateRooms.find((room) => room.searchKey && room.searchKey === searchKey);
 
@@ -71,6 +77,12 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
 
   }, [queryClient, setSelectedRoom]);
 
+  const filteredGroupRooms = groupRooms.filter((r) =>
+    r.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+  const filteredUsers = users.filter((u) =>
+    u.name.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="min-w-60 bg-[#313131] rounded-[20px] shadow-lg relative flex flex-col">
@@ -78,7 +90,7 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
 
       <div className="flex flex-row items-center font-bold p-6">
         <h2 className="flex-1 text-2xl  text-white ">Chats</h2>
-        <div className="text-2xl">+</div>
+        <div className="text-2xl cursor-pointer hover:text-orange-300" onClick={() => setIsCreatingGroup(true)}>+</div>
       </div>
 
       <div className="flex flex-row gap-2 p-2 px-4">
@@ -90,22 +102,37 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
             {tab}
           </div>
         ))}
+      </div>
 
+      <div className="p-3 px-4">
+        <input
+          type="text"
+          placeholder="Search"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full rounded-[14px] py-2 px-3 outline-none bg-[#222] text-white"
+        />
       </div>
 
       <div className="overflow-y-auto flex-1 pl-4 my-2 mx-2 scrollbar ">
 
         {(activeTab === "All" || activeTab === "Groups") && groupRooms.length != 0 && (
-          <section>
-            <h2 className="flex-1 text-xl font-semibold text-white mb-2">Groups</h2>
-            <div className="space-y-6">
-              {groupRooms.map((room) => (
+          <section className="mb-6">
+            <h2 className="flex-1 text-xl font-semibold text-white">Groups</h2>
+            <div className="space-y-4">
+              {filteredGroupRooms.map((room) => (
                 <ChatItem
                   key={room._id}
                   room={room}
                   selectedRoom={selectedRoom}
-                  setSelectedRoom={setSelectedRoom}
-                  setOnChangProfile={setOnChangProfile} />
+                  setSelectedRoom={(room) => {
+                    setSelectedRoom(room);
+                    setSelectedUser(null);
+                    setIsCreatingGroup(false);
+                    setIsMemberListOpen(false);
+                  }}
+                  setOnChangProfile={setOnChangProfile}
+                />
               ))}
             </div>
           </section>
@@ -113,15 +140,15 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
 
 
         {(activeTab === "All" || activeTab === "Private") && (
-          <section className="mt-8">
+          <section>
             <h2 className="flex-1 text-xl font-semibold text-white mb-2">Private</h2>
             <div className="space-y-4">
-              {users.map((user) => (
+              {filteredUsers.map((u) => (
                 <UserItem
-                  key={user._id}
-                  user={user}
+                  key={u._id}
+                  user={u}
                   onSelectUser={handleSelectUser}
-                  selectedRoom={selectedRoom}
+                  isSelected={selectedUser?._id === u._id}
                   currentUser={currentUser}
                 />
               ))}
