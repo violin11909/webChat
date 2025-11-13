@@ -73,19 +73,38 @@ exports.updateRoomProfile = async (req, res) => {
 exports.getContentsByRoomId = async (req, res) => {
     try {
         const roomId = req.params.roomId;
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const skip = (page - 1) * limit;
 
         const room = await Room.findById(roomId);
         if (!room) {
             return res.status(404).json({ message: 'Room not found' });
         }
 
-        const content = await Message.find({ roomId: roomId }).sort({ createdAt: 1 }).populate([
-            { path: 'senderId', select: 'profile name' },
-            { path: 'reactEmoji', select: 'emoji', populate: { path: 'reacterId', select: 'profile name' } }
-        ]);
-        // const populateContent = await  content.populate('senderId', 'profile name');
+        const totalMessages = await Message.countDocuments({ roomId: roomId });
 
-        return res.status(200).json({ message: "Profile updated successfully", data: content });
+        const content = await Message.find({ roomId: roomId })
+            .sort({ createdAt: -1 }) // Sort by newest first for pagination
+            .skip(skip)
+            .limit(limit)
+            .populate([
+                { path: 'senderId', select: 'profile name' },
+                { path: 'reactEmoji', select: 'emoji', populate: { path: 'reacterId', select: 'profile name' } }
+            ]);
+        
+        const reversedContent = content.reverse();
+
+        return res.status(200).json({ 
+            message: "Messages fetched successfully", 
+            data: reversedContent,
+            pagination: {
+                total: totalMessages,
+                page: page,
+                limit: limit,
+                totalPages: Math.ceil(totalMessages / limit)
+            }
+        });
 
     } catch (err) {
         console.error(err.message)
@@ -130,8 +149,11 @@ exports.joinRoom = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Room not found' });
         }
 
-        const newMember = await Room.findByIdAndUpdate(roomId, { $addToSet: { member: userId } });
-        const joinedRoom = await newMember.populate('member', 'profile name');
+        const joinedRoom = await Room.findByIdAndUpdate(
+            roomId, 
+            { $addToSet: { member: userId } },
+            { new: true }
+        ).populate('member', 'profile name');
 
         return res.status(200).json({ success: true, message: "Join room successfully", data: joinedRoom });
 

@@ -1,6 +1,6 @@
 import EditProfile from './EditProfile';
 import { HiPaperClip, HiMicrophone } from 'react-icons/hi2';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { getContentsByRoomId, joinRoom } from '../../service/roomService';
 import { sendContent } from '../../listeners/userEvent';
 import { useSaveContent } from '../../hooks/useSaveContent';
@@ -70,42 +70,73 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         return null;
     }, [selectedRoom, user]);
 
-    const { data: contents, isLoading, isError } =
-        useQuery({
-            queryKey: ['contents', selectedRoom._id],
-            queryFn: () => getContentsByRoomId(selectedRoom._id),
-            enabled: !!selectedRoom._id,
-        });
+    const {
+        data,
+        error,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        isError,
+    } = useInfiniteQuery({
+        queryKey: ['contents', selectedRoom._id],
+        queryFn: ({ pageParam = 1 }) => getContentsByRoomId(selectedRoom._id, pageParam),
+        getNextPageParam: (lastPage) => {
+            const { pagination } = lastPage;
+            if (pagination.page < pagination.totalPages) {
+                return pagination.page + 1;
+            }
+            return undefined;
+        },
+        initialPageParam: 1,
+        enabled: !!selectedRoom._id,
+    });
+
+    const contents = useMemo(() => data?.pages.reduce((acc, page) => [...page.data, ...acc], []) ?? [], [data]);
 
     const queryClient = useQueryClient();
     useEffect(() => {
         if (!selectedRoom || !selectedRoom._id) return;
 
         const handleRecieveMessage = (msg) => {
+            queryClient.setQueryData(['contents', selectedRoom._id], (oldData) => {
+                if (!oldData) return oldData;
 
-            queryClient.setQueryData(['contents', selectedRoom._id], (oldContents) => {
-                if (!oldContents) return [msg];
-
-                const isExisting = oldContents.some(content => content._id === msg._id);
-                if (isExisting) return oldContents;
-                return [...oldContents, msg];
-            });
-        };
-        const handleRecieveEmoji = (msg) => {
-            console.log('receive emoji ', msg)
-            queryClient.setQueryData(['contents', selectedRoom._id], (oldContents) => {
-
-                if (!oldContents || !Array.isArray(oldContents)) {
-                    return [msg];
-                }
-
-                return oldContents.map(content => {
-                    if (content._id === msg._id) return msg;
-
-                    return content;
+                const newPages = oldData.pages.map((page, pageIndex) => {
+                    if (pageIndex === 0) { 
+                        const isExisting = page.data.some(content => content._id === msg._id);
+                        if (isExisting) return page;
+                        return {
+                            ...page,
+                            data: [...page.data, msg]
+                        };
+                    }
+                    return page;
                 });
+
+                return {
+                    ...oldData,
+                    pages: newPages
+                };
             });
         };
+
+        const handleRecieveEmoji = (msg) => {
+            queryClient.setQueryData(['contents', selectedRoom._id], (oldData) => {
+                if (!oldData) return oldData;
+
+                const newPages = oldData.pages.map(page => ({
+                    ...page,
+                    data: page.data.map(content => content._id === msg._id ? msg : content)
+                }));
+
+                return {
+                    ...oldData,
+                    pages: newPages
+                };
+            });
+        };
+
         socket.on('receive-message', handleRecieveMessage);
         socket.on('receive-emoji', handleRecieveEmoji);
 
@@ -113,7 +144,6 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             socket.off('receive-message', handleRecieveMessage);
             socket.off('receive-emoji', handleRecieveEmoji);
         };
-
     }, [queryClient, selectedRoom._id]);
 
 
@@ -165,15 +195,56 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         setIsMember(false)
     }
 
-    const messagesEndRef = useRef(null); //scroller ล่างสุด
-    useLayoutEffect(() => {
-        if (messagesEndRef.current) {
-            const container = messagesEndRef.current;
-            container.scrollTop = container.scrollHeight;
-        }
-    }, [contents?.length]);
+    const messagesEndRef = useRef(null);
+    const scrollState = useRef({
+        isInitialLoad: true,
+        prevScrollHeight: 0,
+    }).current;
 
-    if (!contents) return;
+    useLayoutEffect(() => {
+        const container = messagesEndRef.current;
+        if (!container) return;
+
+        if (scrollState.isInitialLoad) {
+            container.scrollTop = container.scrollHeight;
+            scrollState.isInitialLoad = false;
+        } else {
+            const scrollOffset = container.scrollHeight - scrollState.prevScrollHeight;
+            if (scrollOffset > 0) {
+                container.scrollTop += scrollOffset;
+            } else {
+                container.scrollTop = container.scrollHeight;
+            }
+        }
+        scrollState.prevScrollHeight = container.scrollHeight;
+
+    }, [contents]);
+
+    useEffect(() => {
+        scrollState.isInitialLoad = true;
+    }, [selectedRoom._id, scrollState]);
+
+    if (isLoading) {
+        return (
+            <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative justify-center items-center">
+                <div className="text-white text-2xl">Loading messages...</div>
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative justify-center items-center">
+                <div className="text-red-500 text-2xl">Error loading messages.</div>
+            </div>
+        );
+    }
+
+    if (!contents) return (
+        <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative justify-center items-center">
+            <div className="text-white text-2xl">Select a room to start chatting.</div>
+        </div>
+    );
 
 
     return (
@@ -283,6 +354,17 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
             {!isMemberListOpen && isMember && (
             <main className="p-6 space-y-4 overflow-y-auto h-full" ref={messagesEndRef}>
+                {hasNextPage && (
+                    <div className="text-center">
+                        <button
+                            onClick={() => fetchNextPage()}
+                            disabled={isFetchingNextPage}
+                            className="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 disabled:bg-gray-800"
+                        >
+                            {isFetchingNextPage ? 'Loading more...' : 'Load More'}
+                        </button>
+                    </div>
+                )}
                 {contents.map(content => {
                     return (
                         <MessageItem
