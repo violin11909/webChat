@@ -6,6 +6,7 @@ const { createRoom, saveContent, saveReactEmoji } = require("../controllers/room
 
 
 let io;
+const onlineUsers = new Map();
 
 let roomList
 function initSocket(server) {
@@ -28,7 +29,7 @@ function initSocket(server) {
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-            const user = await User.findById(decoded.id)
+            const user = await User.findById(decoded.id).select('-password');
             if (!user) {
                 throw new Error("User not found");
             }
@@ -44,8 +45,19 @@ function initSocket(server) {
     });
 
     io.on('connection', (socket) => {
-        console.log(socket.id)
         console.log(`🟢 User '${socket.data.user.name}' connected`);
+        
+        onlineUsers.set(socket.id, { 
+            _id: socket.data.user._id, 
+            name: socket.data.user.name, 
+            profile: socket.data.user.profile 
+        });
+        io.emit('update-online-users', Array.from(onlineUsers.values()));
+
+        socket.on('get-online-users', () => {
+            socket.emit('online-users-list', Array.from(onlineUsers.values()));
+        });
+
         [...socket.rooms].forEach(r => r !== socket.id && socket.leave(r));
 
         socket.on('send-message', async (data) => {
@@ -117,9 +129,14 @@ function initSocket(server) {
             }
         });
 
+        
+
 
         socket.on('disconnect', () => {
             console.log(`🔴 User '${socket.data.user.name}' Disconnectd`);
+            // Remove user from online list and broadcast
+            onlineUsers.delete(socket.id);
+            io.emit('update-online-users', Array.from(onlineUsers.values()));
         });
     });
 
