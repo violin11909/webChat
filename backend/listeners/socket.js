@@ -52,6 +52,11 @@ function initSocket(server) {
         userIdToSocketIdMap.set(socket.data.user._id.toString(), socket.id);
         io.emit('update-online-users', Array.from(onlineUsers.values()));
 
+        // Add a listener for clients to request the online user list
+        socket.on('get-online-users', () => {
+            socket.emit('update-online-users', Array.from(onlineUsers.values()));
+        });
+
         // Clean up any previous room connections
         [...socket.rooms].forEach(r => r !== socket.id && socket.leave(r));
 

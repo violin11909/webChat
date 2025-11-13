@@ -9,23 +9,18 @@ function Home() {
   const [onlineUsers, setOnlineUsers] = useState([]);
 
   useEffect(() => {
-    if (!user) return;
-
-    socket.emit('get-online-users');
-
     const handleUpdateOnlineUsers = (users) => {
       setOnlineUsers(users);
     };
 
     socket.on('update-online-users', handleUpdateOnlineUsers);
 
-    socket.on('online-users-list', handleUpdateOnlineUsers);
+    socket.emit('get-online-users');
 
     return () => {
       socket.off('update-online-users', handleUpdateOnlineUsers);
-      socket.off('online-users-list', handleUpdateOnlineUsers);
     };
-  }, [user]);
+  }, []); 
 
   return (
     <div className="flex flex-col flex-1 bg-[#313131] text-white rounded-[20px] shadow-lg p-6">
