@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { API_URL } from '../../config/firebase';
+import { API_URL } from '../../config/config';
 
 export const getRooms = async () => {
     try {
