@@ -1,13 +1,12 @@
 const { Server } = require("socket.io");
-const jwt = require('jsonwebtoken')
-
-const User = require('../models/User')
-const { createRoom, saveContent, saveReactEmoji } = require("../controllers/room")
-
+const jwt = require('jsonwebtoken');
+const User = require('../models/User');
+const { createRoom, saveContent, saveReactEmoji } = require("../controllers/room");
 
 let io;
+const onlineUsers = new Map();
+const userIdToSocketIdMap = new Map();
 
-let roomList
 function initSocket(server) {
     io = new Server(server, {
         cors: {
@@ -16,6 +15,7 @@ function initSocket(server) {
         }
     });
 
+    // Middleware for authentication
     io.use(async (socket, next) => {
         let token;
         if (socket.handshake.auth.token) token = socket.handshake.auth.token;
@@ -27,112 +27,105 @@ function initSocket(server) {
 
         try {
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-            const user = await User.findById(decoded.id)
+            const user = await User.findById(decoded.id).select('-password');
             if (!user) {
                 throw new Error("User not found");
             }
             socket.data.user = user;
-
             next();
         } catch (err) {
-            if (err.message === "User not found") {
-                return next(new Error('Authentication error: User not found'));
-            }
             return next(new Error('Authentication error: Invalid token'));
         }
     });
 
+    // Main connection handler
     io.on('connection', (socket) => {
-        console.log(socket.id)
         console.log(`🟢 User '${socket.data.user.name}' connected`);
+
+        // Add user to online lists and broadcast
+        const userInfo = {
+            _id: socket.data.user._id,
+            name: socket.data.user.name,
+            profile: socket.data.user.profile
+        };
+        onlineUsers.set(socket.id, userInfo);
+        userIdToSocketIdMap.set(socket.data.user._id.toString(), socket.id);
+        io.emit('update-online-users', Array.from(onlineUsers.values()));
+
+        // Add a listener for clients to request the online user list
+        socket.on('get-online-users', () => {
+            socket.emit('update-online-users', Array.from(onlineUsers.values()));
+        });
+
+        // Clean up any previous room connections
         [...socket.rooms].forEach(r => r !== socket.id && socket.leave(r));
+
+        // --- Event Listeners ---
 
         socket.on('send-message', async (data) => {
             try {
-                const { roomId } = data
-
+                const { roomId } = data;
                 const res = await saveContent(data);
-                if (res) io.to(roomId).emit('receive-message', res); //populate เเล้ว
-
+                if (res) io.to(roomId).emit('receive-message', res);
             } catch (err) {
                 socket.emit('error-message', err.message);
             }
-
         });
 
         socket.on('send-emoji', async (data) => {
             try {
-                const { roomId } = data
-                console.log(socket.data.user.name, 'send emoji', data)
+                const { roomId } = data;
                 const res = await saveReactEmoji(data);
-                if (res) io.to(roomId).emit('receive-emoji', res); //populate เเล้ว
+                if (res) io.to(roomId).emit('receive-emoji', res);
             } catch (err) {
                 socket.emit('error-message', err.message);
             }
-
         });
 
-
         socket.on("join-room", async (roomId) => {
-            console.log(socket.data.user.name, 'room: ', socket.rooms)
-            console.log(socket.data.user.name, 'join room: ', roomId);
-            if (!roomId) {
-                socket.emit("error-message", "Room not found!");
-                return;
-            }
+            if (!roomId) return socket.emit("error-message", "Room not found!");
             socket.join(roomId);
-            console.log(socket.data.user.name, 'room: ', socket.rooms)
-
         });
 
         socket.on("leave-room", async (roomId) => {
-            console.log(socket.data.user.name, 'leave room: ', roomId)
-            if (!roomId) {
-                socket.emit("error-message", "Room not found!");
-                return;
-            }
+            if (!roomId) return socket.emit("error-message", "Room not found!");
             socket.leave(roomId);
-            console.log(socket.data.user.name, 'room now: ', socket.rooms);
-
         });
 
         socket.on('create-room', async (data) => {
             try {
-
                 const createdRoom = await createRoom(data);
+                if (!createdRoom) return socket.emit("error-message", "Failed to create room!");
 
-                if (!createdRoom) {
-                    socket.emit("error-message", "Failed to create room!");
-                    return;
+                // Notify members of the new room
+                if (createdRoom.isPrivate) {
+                    // For private rooms, only notify the members
+                    createdRoom.member.forEach(member => {
+                        const memberSocketId = userIdToSocketIdMap.get(member._id.toString());
+                        if (memberSocketId) {
+                            io.to(memberSocketId).emit("new-room", createdRoom);
+                        }
+                    });
+                } else {
+                    // For public groups, notify all clients
+                    io.emit("new-room", createdRoom);
                 }
-                socket.emit("success-message", "Create room successful!");
-                socket.emit("new-room", createdRoom);
-                console.log('new room = ', createdRoom.name)
-                // socket.join(createdRoom._id.toString());
-
             } catch (err) {
                 socket.emit("error-message", err.message);
-                return;
             }
         });
 
-
         socket.on('disconnect', () => {
-            console.log(`🔴 User '${socket.data.user.name}' Disconnectd`);
+            console.log(`🔴 User '${socket.data.user.name}' Disconnected`);
+            // Remove user from maps and broadcast
+            userIdToSocketIdMap.delete(socket.data.user._id.toString());
+            onlineUsers.delete(socket.id);
+            io.emit('update-online-users', Array.from(onlineUsers.values()));
         });
     });
 
     console.log("Socket.IO is working!");
-
     return io;
 }
-
-
-// socket.emit()	ส่งกลับไปเฉพาะ client ที่กำลังเชื่อมต่อกับ socket นี้
-// io.emit()	ส่งถึงทุก client ทุกห้อง
-// socket.broadcast.emit()	ส่งถึงทุก client ยกเว้นตัวเอง
-// io.to(room).emit()	ส่งถึงเฉพาะ client ในห้องนั้น
-// socket.to(room).emit()	ส่งถึงคนอื่นในห้อง ยกเว้นตัวเอง
 
 module.exports = { initSocket, io };

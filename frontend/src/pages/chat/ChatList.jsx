@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { ChatItem } from "./ChatItem";
 import { UserItem } from "./UserItem";
@@ -27,40 +27,36 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
   }, [rooms]);
 
   // Handle user selection for private chat
-  const handleSelectUser = async (clickedUser) => {
-    setSelectedUser(clickedUser); // Update selected user state
-    setSelectedRoom(null); // Clear selected room when a user is clicked
+  const handleSelectUser = useCallback(async (clickedUser) => {
+    setSelectedUser(clickedUser);
+    setSelectedRoom(null);
     setIsCreatingGroup(false);
     setIsMemberListOpen(false);
-    const searchKey = (([user._id, clickedUser._id]).sort()).join("-");
-    const existingRoom = privateRooms.find((room) => room.searchKey && room.searchKey === searchKey);
 
-    if (existingRoom) {
-      if (selectedRoom) socket.emit("leave-room", selectedRoom._id);
-      console.log('beofore join room: ', socket.rooms);
-      socket.emit("join-room", existingRoom._id);
-      console.log('join room: ', existingRoom._id);
+    const searchKey = [user._id, clickedUser._id].sort().join("-");
+    
+    // This one-time listener will handle opening the room for the user who clicked.
+    socket.once("new-room", (newRoom) => {
+      // Ensure we're acting on the correct room creation event
+      if (newRoom.searchKey === searchKey) {
+        if (selectedRoom) socket.emit("leave-room", selectedRoom._id);
+        socket.emit("join-room", newRoom._id);
+        setSelectedRoom(newRoom);
+        setOnChangProfile(false);
+      }
+    });
 
-      setSelectedRoom(existingRoom);
-      setOnChangProfile(false);
-      return;
-    } else {
-      const roomName = `Private: ${currentUser.name} & ${clickedUser.name}`;
-      const roomData = { name: roomName, isPrivate: true, member: [currentUser._id, clickedUser._id] }
-      socket.emit("create-room", roomData);
+    // Emit create-room. The backend will find or create the room and emit "new-room"
+    const roomName = `Private: ${currentUser.name} & ${clickedUser.name}`;
+    const roomData = { name: roomName, isPrivate: true, member: [currentUser._id, clickedUser._id] };
+    socket.emit("create-room", roomData);
 
-    }
-  }
+  }, [user, selectedRoom, setSelectedRoom, setOnChangProfile, setIsCreatingGroup, setIsMemberListOpen, currentUser]);
 
   const queryClient = useQueryClient();
 
   useEffect(() => {
     const handleNewRoom = (newRoom) => {
-      console.log('beofore join room: ', socket.rooms);
-      console.log('join room: ', newRoom);
-      socket.emit("join-room", newRoom._id);
-      setSelectedRoom(newRoom);
-
       queryClient.setQueryData(['rooms'], (oldRooms) => {
         if (!oldRooms) return [newRoom];
         const isExisting = oldRooms.some(room => room._id === newRoom._id);
@@ -75,7 +71,7 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
       socket.off('new-room', handleNewRoom);
     };
 
-  }, [queryClient, setSelectedRoom]);
+  }, [queryClient]);
 
   const filteredGroupRooms = groupRooms.filter((r) =>
     r.name.toLowerCase().includes(searchTerm.toLowerCase())

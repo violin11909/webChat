@@ -68,7 +68,7 @@ const ImageUploader = ({ type, profile, roomId, isUploading, setIsUploading, set
                 updateRoomMutation.mutate({ filePath: url, roomId: roomId });
             } else if (type === "user-profile") {
                 setUser({ ...user, profile: url })
-                await updateUserProfile(url, user._id)
+                await updateUserProfile({ userId: user._id, filePath: url })
             }
             else if (type === "message-image") {
                 setUrlFirebase(url)

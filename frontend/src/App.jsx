@@ -1,5 +1,4 @@
 
-import Sidebar from './components/layout/Sidebar';
 import ChatMessage from './pages/chat/ChatMessage';
 import ChatList from './pages/chat/ChatList';
 import CreateGroupForm from './pages/chat/CreateGroupForm';
@@ -10,13 +9,13 @@ import { useQuery } from "@tanstack/react-query";
 import { getRooms } from './service/roomService';
 import { getUsers } from './service/userService';
 import { useAuth } from './contexts/AuthContext';
+import EditProfilePane from './pages/chat/EditProfilePane';
 
 function App() {
   const { rooms } = useQueryData();
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [onChangProfile, setOnChangProfile] = useState(false);
-  const [isChangingUserProfile, setIsChangingUserProfile] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
 
@@ -28,21 +27,8 @@ function App() {
 
   const otherUsers = users?.filter(user => user._id !== currentUser?._id);
 
-  const handleCloseUserProfile = () => {
-    if (!isChangingUserProfile || isUploading) return;
-    setIsChangingUserProfile(false)
-  }
-
-
   return (
-
-    <div className="h-screen w-screen overflow-hidden bg-white flex flex-row p-6 gap-5" onClick={handleCloseUserProfile}>
-      <Sidebar
-        isUploading={isUploading}
-        setIsUploading={setIsUploading}
-        isChangingUserProfile={isChangingUserProfile}
-        setIsChangingUserProfile={setIsChangingUserProfile}
-      />
+    <>
       <ChatList
         selectedRoom={selectedRoom}
         setSelectedRoom={setSelectedRoom}
@@ -60,6 +46,7 @@ function App() {
           users={otherUsers}
           currentUser={currentUser}
           setIsCreatingGroup={setIsCreatingGroup}
+          setSelectedRoom={setSelectedRoom}
         />
       ) : (
         <ChatMessage
@@ -73,7 +60,7 @@ function App() {
           isMemberListOpen={isMemberListOpen}
         />
       )}
-    </div>
+    </>
   );
 }
 

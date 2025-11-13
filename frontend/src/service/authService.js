@@ -3,7 +3,7 @@ import { API_URL } from '../../config/config';
 
 export const register = async (userData) => {
     try {
-        const response = await axios.post(`${API_URL}/api/v1/auth/register`, userData);
+        const response = await axios.post(`${API_URL}/api/v1/auth/register`, userData, { withCredentials: true });
         return response.data;
     } catch (error) {
         console.error('Error registering user:', error);
@@ -13,7 +13,7 @@ export const register = async (userData) => {
 
 export const login = async (userData) => {
     try {
-        const response = await axios.post(`${API_URL}/api/v1/auth/login`, userData);
+        const response = await axios.post(`${API_URL}/api/v1/auth/login`, userData, { withCredentials: true });
         return response.data;
     } catch (error) {
         console.error('Error logging in user:', error);

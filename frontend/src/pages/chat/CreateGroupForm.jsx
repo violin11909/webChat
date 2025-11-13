@@ -1,90 +1,72 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { createRoom } from "../../service/roomService";
 import { socket } from "../../listeners/socketClient";
+import { useAuth } from "../../contexts/AuthContext";
 
-function CreateGroupForm({ users, currentUser, setIsCreatingGroup }) {
+function CreateGroupForm({ setIsCreatingGroup, setSelectedRoom }) {
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [groupName, setGroupName] = useState("");
-  const [search, setSearch] = useState("");
-  const [selectedUsers, setSelectedUsers] = useState([]);
-
-  console.log("CreateGroupForm users:", users);
-  const handleToggle = (u) => {
-    setSelectedUsers((prev) =>
-      prev.includes(u._id) ? prev.filter((id) => id !== u._id) : [...prev, u._id]
-    );
-  };
 
   const handleSubmit = async () => {
-    if (!groupName.trim() || selectedUsers.length === 0) {
-      alert("Please enter group name and select members");
+    if (!groupName.trim()) {
+      alert("Please enter a group name.");
       return;
     }
+    // join after create
+    socket.once("new-room", (newRoom) => {
+      if (!newRoom.isPrivate) {
+        socket.emit("join-room", newRoom._id);
+        setSelectedRoom(newRoom);
+      }
+    });
+
     const roomData = {
       name: groupName,
       isPrivate: false,
-      member: [currentUser._id, ...selectedUsers],
+      member: [currentUser._id], // Create group with only the current user
     };
     socket.emit("create-room", roomData);
 
     queryClient.invalidateQueries(["rooms"]);
     setIsCreatingGroup(false);
-    socket.emit("join-room", roomData._id);
   };
-
-  const filtered = users.filter((u) =>
-    u.name.toLowerCase().includes(search.toLowerCase())
-  );
 
   return (
     <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl p-8 text-white">
-      <h2 className="text-2xl font-bold mb-4">Create Group</h2>
-
-      <input
-        type="text"
-        placeholder="Group Name"
-        value={groupName}
-        onChange={(e) => setGroupName(e.target.value)}
-        className="p-3 rounded-lg text-white mb-4 w-full"
-      />
-
-      <input
-        type="text"
-        placeholder="Search"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        className="w-full rounded-[14px] py-2 px-3 outline-none bg-[#222] text-white mb-4"
-      />
-
-      <div className="overflow-y-auto flex-1 space-y-2 bg-[#222] p-4 rounded-lg">
-        {filtered.map((u) => (
-          <div
-            key={u._id}
-            className="flex items-center justify-left gap-3 p-2 rounded-lg cursor-pointer"
-            onClick={() => handleToggle(u)}
-          >
-            <div
-              className={`w-4 h-4 rounded-full border-2 ${
-                selectedUsers.includes(u._id) ? "bg-[#FF9A00]" : "border-white"
-              }`}
-            ></div>
-
-            <div className="flex items-center gap-3">
-              <img src={u.profile} alt="" className="w-10 h-10 rounded-full" />
-              <span>{u.name}</span>
-            </div>
-            
-          </div>
-        ))}
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-2xl font-bold">Create New Group</h2>
+        <button 
+            className="text-2xl cursor-pointer hover:text-orange-300" 
+            onClick={() => setIsCreatingGroup(false)}
+        >
+            &times;
+        </button>
       </div>
 
-      <button
-        onClick={handleSubmit}
-        className="mt-4 bg-[#FF9A00] py-3 rounded-lg text-white font-bold hover:bg-orange-500"
-      >
-        Submit
-      </button>
+      <div className="space-y-4">
+        <div>
+            <label htmlFor="groupName" className="block text-sm font-medium mb-1">Group Name</label>
+            <input
+                id="groupName"
+                type="text"
+                placeholder="Enter group name..."
+                value={groupName}
+                onChange={(e) => setGroupName(e.target.value)}
+                className="p-3 rounded-lg bg-[#222] text-white w-full outline-none"
+            />
+        </div>
+      </div>
+
+      <div className="mt-auto">
+        <button
+            onClick={handleSubmit}
+            className="w-full mt-4 bg-[#FF9A00] py-3 rounded-lg text-white font-bold hover:bg-orange-500 disabled:bg-gray-500"
+            disabled={!groupName.trim()}
+        >
+            Create Group
+        </button>
+      </div>
     </div>
   );
 }

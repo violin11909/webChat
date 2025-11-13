@@ -22,18 +22,18 @@ export const updateRoomProfile = async (filePath, roomId) => {
 }
 
 
-export const getContentsByRoomId = async (roomId) => {
+export const getContentsByRoomId = async (roomId, page = 1) => {
     try {
         if (!roomId) {
             console.error("Missing room Id");
             return;
         }
-        const res = await axios.get(`${API_URL}/api/v1/room/content/${roomId}`);
-        return res.data.data;
+        const res = await axios.get(`${API_URL}/api/v1/room/content/${roomId}?page=${page}&limit=50`);
+        return res.data;
 
     } catch (err) {
         console.error(err);
-        throw new Error("Failed to change room profile")
+        throw new Error("Failed to get room content")
     }
 
 }

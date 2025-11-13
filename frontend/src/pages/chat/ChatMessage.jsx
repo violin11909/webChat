@@ -1,6 +1,6 @@
 import EditProfile from './EditProfile';
 import { HiPaperClip, HiMicrophone } from 'react-icons/hi2';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useInfiniteQuery } from '@tanstack/react-query';
 import { getContentsByRoomId, joinRoom } from '../../service/roomService';
 import { sendContent } from '../../listeners/userEvent';
 import { useSaveContent } from '../../hooks/useSaveContent';
@@ -19,7 +19,8 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     if (!selectedRoom) return;
     const { user } = useAuth();
     const mainColor = "[#FF9A00]";
-
+    const queryClient = useQueryClient();
+    const [message, setMessage] = useState("");
     const [selectedImage, setSelectedImage] = useState(null);
     const [preview, setPreview] = useState(null);
     const [isSendingImage, setIsSendingImage] = useState(false); //uploading
@@ -70,42 +71,72 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         return null;
     }, [selectedRoom, user]);
 
-    const { data: contents, isLoading, isError } =
-        useQuery({
-            queryKey: ['contents', selectedRoom._id],
-            queryFn: () => getContentsByRoomId(selectedRoom._id),
-            enabled: !!selectedRoom._id,
-        });
+    const {
+        data,
+        error,
+        fetchNextPage,
+        hasNextPage,
+        isFetchingNextPage,
+        isLoading,
+        isError,
+    } = useInfiniteQuery({
+        queryKey: ['contents', selectedRoom._id],
+        queryFn: ({ pageParam = 1 }) => getContentsByRoomId(selectedRoom._id, pageParam),
+        getNextPageParam: (lastPage) => {
+            const { pagination } = lastPage;
+            if (pagination.page < pagination.totalPages) {
+                return pagination.page + 1;
+            }
+            return undefined;
+        },
+        initialPageParam: 1,
+        enabled: !!selectedRoom._id,
+    });
 
-    const queryClient = useQueryClient();
+    const contents = useMemo(() => data?.pages.reduce((acc, page) => [...page.data, ...acc], []) ?? [], [data]);
+
     useEffect(() => {
         if (!selectedRoom || !selectedRoom._id) return;
 
         const handleRecieveMessage = (msg) => {
+            queryClient.setQueryData(['contents', selectedRoom._id], (oldData) => {
+                if (!oldData) return oldData;
 
-            queryClient.setQueryData(['contents', selectedRoom._id], (oldContents) => {
-                if (!oldContents) return [msg];
-
-                const isExisting = oldContents.some(content => content._id === msg._id);
-                if (isExisting) return oldContents;
-                return [...oldContents, msg];
-            });
-        };
-        const handleRecieveEmoji = (msg) => {
-            console.log('receive emoji ', msg)
-            queryClient.setQueryData(['contents', selectedRoom._id], (oldContents) => {
-
-                if (!oldContents || !Array.isArray(oldContents)) {
-                    return [msg];
-                }
-
-                return oldContents.map(content => {
-                    if (content._id === msg._id) return msg;
-
-                    return content;
+                const newPages = oldData.pages.map((page, pageIndex) => {
+                    if (pageIndex === 0) { 
+                        const isExisting = page.data.some(content => content._id === msg._id);
+                        if (isExisting) return page;
+                        return {
+                            ...page,
+                            data: [...page.data, msg]
+                        };
+                    }
+                    return page;
                 });
+
+                return {
+                    ...oldData,
+                    pages: newPages
+                };
             });
         };
+
+        const handleRecieveEmoji = (msg) => {
+            queryClient.setQueryData(['contents', selectedRoom._id], (oldData) => {
+                if (!oldData) return oldData;
+
+                const newPages = oldData.pages.map(page => ({
+                    ...page,
+                    data: page.data.map(content => content._id === msg._id ? msg : content)
+                }));
+
+                return {
+                    ...oldData,
+                    pages: newPages
+                };
+            });
+        };
+
         socket.on('receive-message', handleRecieveMessage);
         socket.on('receive-emoji', handleRecieveEmoji);
 
@@ -113,7 +144,6 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
             socket.off('receive-message', handleRecieveMessage);
             socket.off('receive-emoji', handleRecieveEmoji);
         };
-
     }, [queryClient, selectedRoom._id]);
 
 
@@ -128,13 +158,10 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
 
 
-    const [message, setMessage] = useState("")
-    const [isMember, setIsMember] = useState(null)
-
-    useEffect(() => {
-        if (!selectedRoom) return;
-        setIsMember(selectedRoom.isPrivate ? true : mapMemberProfile[user._id] ? true : false)
-    }, [selectedRoom, mapMemberProfile, user._id])
+    const isMember = useMemo(() => {
+        if (!selectedRoom || !mapMemberProfile || !user) return false;
+        return !!mapMemberProfile[user._id];
+    }, [selectedRoom, mapMemberProfile, user]);
 
     const handleChangeProfile = () => {
         if (selectedRoom.isPrivate) return;
@@ -157,6 +184,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
     const handleJoinRoom = async () => {
         const res = await joinRoom(selectedRoom._id, user._id);
         if (res) {
+            await queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setSelectedRoom(res);
             setIsMember(true)
             socket.emit("join-room", res._id);
@@ -165,27 +193,61 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         setIsMember(false)
     }
 
-    const messagesEndRef = useRef(null); //scroller ล่างสุด
-    useLayoutEffect(() => {
-        if (messagesEndRef.current) {
-            const container = messagesEndRef.current;
-            container.scrollTop = container.scrollHeight;
-        }
-    }, [contents?.length]);
+    const messagesEndRef = useRef(null);
+    const scrollState = useRef({ 
+        isInitialLoad: true,
+        prevScrollHeight: 0 
+    }).current;
 
-    if (!contents) return;
+    useEffect(() => {
+        scrollState.isInitialLoad = true;
+    }, [selectedRoom._id, scrollState]);
+
+    useLayoutEffect(() => {
+        const container = messagesEndRef.current;
+        if (!container || isLoading) return;
+
+        if (scrollState.isInitialLoad) {
+            container.scrollTop = container.scrollHeight;
+            scrollState.isInitialLoad = false;
+        } 
+        else {
+            const scrollOffset = container.scrollHeight - scrollState.prevScrollHeight;
+            if (scrollOffset > 0) {
+                container.scrollTop += scrollOffset;
+            }
+        }
+        
+        scrollState.prevScrollHeight = container.scrollHeight;
+
+    }, [contents, isLoading, scrollState]);
+
+    if (isLoading) {
+        return (
+            <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative justify-center items-center">
+                <div className="text-white text-2xl">Loading messages...</div>
+            </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative justify-center items-center">
+                <div className="text-red-500 text-2xl">Error loading messages.</div>
+            </div>
+        );
+    }
+
+    if (!contents) return (
+        <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative justify-center items-center">
+            <div className="text-white text-2xl">Select a room to start chatting.</div>
+        </div>
+    );
 
 
     return (
         <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative">
-            {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
-            {!isMember && (<div className="bg-[#313131]  absolute inset-0 flex flex-col justify-center items-center rounded-[20px] gap-5">
-                <div>Do you want to join  <span className={`font-bold text-xl text-${mainColor}`}>"{selectedRoom.name}"</span> room</div>
-                <div className='flex flex-row gap-5 w-full justify-center'>
-                    <button className={`bg-green-400 p-3 w-30 cursor-pointer`} onClick={handleJoinRoom}>Join</button>
-                </div>
-
-            </div>)}
+            {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0 z-50"></div>)}
 
             {onChangProfile && (
                 <EditProfile
@@ -196,8 +258,8 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                     setSelectedRoom={setSelectedRoom}
                     isUploading={isUploading}
                     setIsUploading={setIsUploading}
-
-                />)}
+                />
+            )}
 
             <header className={`flex items-center justify-between p-4 m-4 rounded-[20px] bg-${mainColor}`}>
                 <div className="flex items-center">
@@ -213,158 +275,98 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                 </div>
                 {!selectedRoom.isPrivate && (
                     <button
-                    onClick={() => setIsMemberListOpen(!isMemberListOpen)}
-                    className="text-white hover:text-gray-200 text-2xl"
-                    title="Show members"
+                        onClick={() => setIsMemberListOpen(!isMemberListOpen)}
+                        className="text-white hover:text-gray-200 text-5xl px-3"
+                        title="Show members"
                     >
-                    <HiUsers />
+                        <HiUsers />
                     </button>
                 )}
             </header>
 
-            {isMemberListOpen &&  (
-            <div className="absolute inset-0 top-[105px] bg-[#222] bg-opacity-95 text-white rounded-[20px] p-4 m-4 z-40 flex flex-col">
-                <div className="flex justify-between items-center p-6 border-white/10">
-                <h3 className="text-2xl font-bold">Group Members</h3>
-                <button
-                    onClick={() => setIsMemberListOpen(false)}
-                    className="text-white text-2xl hover:text-gray-300"
-                    title="Close"
-                >
-                    ✕
-                </button>
-                </div>
-
-                {/* Search bar */}
-                <div className="px-6 py-3">
-                <input
-                    type="text"
-                    placeholder="Search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full rounded-[14px] py-2 px-4 outline-none bg-[#333] text-white placeholder-gray-400"
-                />
-                </div>
-
-                {/* Member list */}
-                <div className="flex-1 overflow-y-auto space-y-3 p-6 scrollbar">
-                {filteredMembers.length > 0 ? (
-                    filteredMembers.map((m) => (
-                    <div
-                        key={m._id}
-                        className="flex items-center gap-3 p-3 bg-[#333] rounded-lg hover:bg-[#444] transition"
-                    >
-                        <img
-                        src={m.profile || "https://i.postimg.cc/XNcYzq3V/user.png"}
-                        alt={m.name}
-                        className="w-12 h-12 rounded-full object-cover bg-white"
-                        />
-                        <div>
-                        <p className="text-lg font-semibold">{m.name}</p>
-                        <p className="text-sm text-gray-400">{m.email || "Member"}</p>
-                        </div>
+            {isMemberListOpen && (
+                <div className="absolute inset-0 top-[105px] bg-[#222] bg-opacity-95 text-white rounded-[20px] p-4 m-4 z-40 flex flex-col">
+                    {/* Member list content remains the same */}
+                    <div className="flex justify-between items-center p-6 border-white/10">
+                        <h3 className="text-2xl font-bold">Group Members</h3>
+                        <button onClick={() => setIsMemberListOpen(false)} className="text-white text-2xl hover:text-gray-300" title="Close">✕</button>
                     </div>
-                    ))
-                ) : (
-                    <p className="text-center text-gray-400 mt-10">No members found</p>
-                )}
-                </div>
-
-                <div className="p-6">
-                <button
-                    onClick={() => setIsMemberListOpen(false)}
-                    className="w-full bg-[#FF9A00] py-3 rounded-lg text-white font-bold hover:bg-orange-500"
-                >
-                    Close
-                </button>
-                </div>
-            </div>
-            )}
-
-            {!isMemberListOpen && isMember && (
-            <main className="p-6 space-y-4 overflow-y-auto h-full" ref={messagesEndRef}>
-                {contents.map(content => {
-                    return (
-                        <MessageItem
-                            key={content._id}
-                            content={content}
-                            memberProfile={content.senderId.profile}
-                            memberName={content.senderId.name}
-                            user={user}
-                            socket={socket}
-                            roomId={selectedRoom._id}
-                        />
-                    );
-                })}
-            </main>
-            )}
-            
-            {!isMemberListOpen && isMember && (
-            <section className="p-4 bg-[#313131] text-black rounded-[20px]">
-                <div className={`flex items-center  justify-between text-white gap-x-5 relative`}>
-
-                    <div className={`flex-1 outline-none rounded-[20px] flex flex-row gap-3 z-10 relative`} >
-
-                        {selectedImage && (
-                            <div className='bg-black/90 absolute w-full pb-10 p-5 left-0 bottom-16 z-[-1] flex justify-center items-center rounded-lg rounded-b-none '>
-                                {!isSendingImage && (
-                                    <div
-                                        onClick={() => setSelectedImage(null)}
-                                        diable={true}
-                                        className='top-0 right-0 font-bold absolute p-8 text-2xl hover:bg-gray-500/40  cursor-pointer rounded-lg w-10 h-10 flex justify-center items-center'>
-                                        X</div>
-                                )}
-                                <ImageUploader
-                                    type="message-image"
-                                    profile={preview}
-                                    isUploading={isSendingImage}
-                                    setIsUploading={setIsSendingImage}
-                                    setSelectedImage={setSelectedImage}
-                                    selectedImage={selectedImage}
-                                    setUrlFirebase={setUrlFirebase}
-                                    roomId={selectedRoom._id}
-                                    setIsSendingImageSuccess={setIsSendingImageSuccess}
-
-                                />
-
-                            </div>
+                    <div className="px-6 py-3">
+                        <input type="text" placeholder="Search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-[14px] py-2 px-4 outline-none bg-[#333] text-white placeholder-gray-400" />
+                    </div>
+                    <div className="flex-1 overflow-y-auto space-y-3 p-6 scrollbar">
+                        {filteredMembers.length > 0 ? (
+                            filteredMembers.map((m) => (
+                                <div key={m._id} className="flex items-center gap-3 p-3 bg-[#333] rounded-lg hover:bg-[#444] transition">
+                                    <img src={m.profile || "https://i.postimg.cc/XNcYzq3V/user.png"} alt={m.name} className="w-12 h-12 rounded-full object-cover bg-white" />
+                                    <div>
+                                        <p className="text-lg font-semibold">{m.name}</p>
+                                        <p className="text-sm text-gray-400">{m.email || "Member"}</p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-gray-400 mt-10">No members found</p>
                         )}
-
-                        {/* input */}
-                        <div className='flex-1 flex flex-row'>
-                            <label className={`hover:text-blue-500 cursor-pointer flex  items-center bg-${mainColor} h-full px-4 rounded-[20px] rounded-r-none`} htmlFor="image">
-                                <HiPaperClip size={24} />
-                                <input
-                                    id="image"
-                                    type="file"
-                                    className="hidden"
-                                    onChange={handleFileChange}
-                                    accept=".png, .jpg, .jpeg, .webp, .gif"
-                                />
-                            </label>
-
-                            <input
-                                type="text"
-                                placeholder="Enter Your Message"
-                                className={`outline-none rounded-[20px] rounded-l-none relative text-lg bg-${mainColor} flex-1 py-6 px-5`}
-                                value={message}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        sendUserContent(selectedRoom._id, message, "text");
-                                    }
-                                }}
-                                onChange={(e) => setMessage(e.target.value)}
-                            />
-                        </div>
-
-
                     </div>
-
-                    <Microphone setMessage={setMessage} />
-
+                    <div className="p-6">
+                        <button onClick={() => setIsMemberListOpen(false)} className="w-full bg-[#FF9A00] py-3 rounded-lg text-white font-bold hover:bg-orange-500">Close</button>
+                    </div>
                 </div>
-            </section>)}
+            )}
 
+            {/* Main Content Area */}
+            {isMember ? (
+                <main className="p-6 space-y-4 overflow-y-auto h-full" ref={messagesEndRef}>
+                    {hasNextPage && (
+                        <div className="text-center">
+                            <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 disabled:bg-gray-800">
+                                {isFetchingNextPage ? 'Loading more...' : 'Load More'}
+                            </button>
+                        </div>
+                    )}
+                    {contents.map(content => (
+                        <MessageItem key={content._id} content={content} memberProfile={content.senderId.profile} memberName={content.senderId.name} user={user} socket={socket} roomId={selectedRoom._id} />
+                    ))}
+                </main>
+            ) : (
+                <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
+                    <h3 className="text-xl mb-2">You are not a member of this group.</h3>
+                    <p className="text-gray-400">Join to see the conversation and send messages.</p>
+                </div>
+            )}
+
+            {/* Bottom Bar */}
+            {isMember ? (
+                <section className="p-4 bg-[#313131] text-black rounded-[20px]">
+                    <div className={`flex items-center  justify-between text-white gap-x-5 relative`}>
+                        <div className={`flex-1 outline-none rounded-[20px] flex flex-row gap-3 z-10 relative`} >
+                            {selectedImage && (
+                                <div className='bg-black/90 absolute w-full pb-10 p-5 left-0 bottom-16 z-[-1] flex justify-center items-center rounded-lg rounded-b-none '>
+                                    {!isSendingImage && (
+                                        <div onClick={() => setSelectedImage(null)} diable={true} className='top-0 right-0 font-bold absolute p-8 text-2xl hover:bg-gray-500/40  cursor-pointer rounded-lg w-10 h-10 flex justify-center items-center'>X</div>
+                                    )}
+                                    <ImageUploader type="message-image" profile={preview} isUploading={isSendingImage} setIsUploading={setIsSendingImage} setSelectedImage={setSelectedImage} selectedImage={selectedImage} setUrlFirebase={setUrlFirebase} roomId={selectedRoom._id} setIsSendingImageSuccess={setIsSendingImageSuccess} />
+                                </div>
+                            )}
+                            <div className='flex-1 flex flex-row'>
+                                <label className={`hover:text-blue-500 cursor-pointer flex  items-center bg-${mainColor} h-full px-4 rounded-[20px] rounded-r-none`} htmlFor="image">
+                                    <HiPaperClip size={24} />
+                                    <input id="image" type="file" className="hidden" onChange={handleFileChange} accept=".png, .jpg, .jpeg, .webp, .gif" />
+                                </label>
+                                <input type="text" placeholder="Enter Your Message" className={`outline-none rounded-[20px] rounded-l-none relative text-lg bg-${mainColor} flex-1 py-6 px-5`} value={message} onKeyDown={(e) => { if (e.key === "Enter") { sendUserContent(selectedRoom._id, message, "text"); } }} onChange={(e) => setMessage(e.target.value)} />
+                            </div>
+                        </div>
+                        <Microphone setMessage={setMessage} />
+                    </div>
+                </section>
+            ) : (
+                <section className="p-4 bg-[#313131] text-black rounded-[20px]">
+                    <button className={`w-full bg-orange-400 hover:bg-orange-300 text-white font-bold py-4 px-4 rounded-3xl text-xl`} onClick={handleJoinRoom}>
+                        Join Group
+                    </button>
+                </section>
+            )}
         </div>
     );
 }
