@@ -247,14 +247,7 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
 
     return (
         <div className="bg-[#313131] flex flex-col flex-1 rounded-[20px] shadow-2xl relative">
-            {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0"></div>)}
-            {!isMember && (<div className="bg-[#313131]  absolute inset-0 flex flex-col justify-center items-center rounded-[20px] gap-5">
-                <div>Do you want to join  <span className={`font-bold text-xl text-${mainColor}`}>"{selectedRoom.name}"</span> room</div>
-                <div className='flex flex-row gap-5 w-full justify-center'>
-                    <button className={`bg-green-400 p-3 w-30 cursor-pointer`} onClick={handleJoinRoom}>Join</button>
-                </div>
-
-            </div>)}
+            {isUploading && (<div className="bg-black/40 backdrop-blur-[1px] absolute inset-0 z-50"></div>)}
 
             {onChangProfile && (
                 <EditProfile
@@ -265,8 +258,8 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                     setSelectedRoom={setSelectedRoom}
                     isUploading={isUploading}
                     setIsUploading={setIsUploading}
-
-                />)}
+                />
+            )}
 
             <header className={`flex items-center justify-between p-4 m-4 rounded-[20px] bg-${mainColor}`}>
                 <div className="flex items-center">
@@ -282,169 +275,98 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
                 </div>
                 {!selectedRoom.isPrivate && (
                     <button
-                    onClick={() => setIsMemberListOpen(!isMemberListOpen)}
-                    className="text-white hover:text-gray-200 text-2xl"
-                    title="Show members"
+                        onClick={() => setIsMemberListOpen(!isMemberListOpen)}
+                        className="text-white hover:text-gray-200 text-5xl px-3"
+                        title="Show members"
                     >
-                    <HiUsers />
+                        <HiUsers />
                     </button>
                 )}
             </header>
 
-            {isMemberListOpen &&  (
-            <div className="absolute inset-0 top-[105px] bg-[#222] bg-opacity-95 text-white rounded-[20px] p-4 m-4 z-40 flex flex-col">
-                <div className="flex justify-between items-center p-6 border-white/10">
-                <h3 className="text-2xl font-bold">Group Members</h3>
-                <button
-                    onClick={() => setIsMemberListOpen(false)}
-                    className="text-white text-2xl hover:text-gray-300"
-                    title="Close"
-                >
-                    ✕
-                </button>
-                </div>
-
-                {/* Search bar */}
-                <div className="px-6 py-3">
-                <input
-                    type="text"
-                    placeholder="Search"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full rounded-[14px] py-2 px-4 outline-none bg-[#333] text-white placeholder-gray-400"
-                />
-                </div>
-
-                {/* Member list */}
-                <div className="flex-1 overflow-y-auto space-y-3 p-6 scrollbar">
-                {filteredMembers.length > 0 ? (
-                    filteredMembers.map((m) => (
-                    <div
-                        key={m._id}
-                        className="flex items-center gap-3 p-3 bg-[#333] rounded-lg hover:bg-[#444] transition"
-                    >
-                        <img
-                        src={m.profile || "https://i.postimg.cc/XNcYzq3V/user.png"}
-                        alt={m.name}
-                        className="w-12 h-12 rounded-full object-cover bg-white"
-                        />
-                        <div>
-                        <p className="text-lg font-semibold">{m.name}</p>
-                        <p className="text-sm text-gray-400">{m.email || "Member"}</p>
-                        </div>
+            {isMemberListOpen && (
+                <div className="absolute inset-0 top-[105px] bg-[#222] bg-opacity-95 text-white rounded-[20px] p-4 m-4 z-40 flex flex-col">
+                    {/* Member list content remains the same */}
+                    <div className="flex justify-between items-center p-6 border-white/10">
+                        <h3 className="text-2xl font-bold">Group Members</h3>
+                        <button onClick={() => setIsMemberListOpen(false)} className="text-white text-2xl hover:text-gray-300" title="Close">✕</button>
                     </div>
-                    ))
-                ) : (
-                    <p className="text-center text-gray-400 mt-10">No members found</p>
-                )}
-                </div>
-
-                <div className="p-6">
-                <button
-                    onClick={() => setIsMemberListOpen(false)}
-                    className="w-full bg-[#FF9A00] py-3 rounded-lg text-white font-bold hover:bg-orange-500"
-                >
-                    Close
-                </button>
-                </div>
-            </div>
-            )}
-
-            {!isMemberListOpen && isMember && (
-            <main className="p-6 space-y-4 overflow-y-auto h-full" ref={messagesEndRef}>
-                {hasNextPage && (
-                    <div className="text-center">
-                        <button
-                            onClick={() => fetchNextPage()}
-                            disabled={isFetchingNextPage}
-                            className="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 disabled:bg-gray-800"
-                        >
-                            {isFetchingNextPage ? 'Loading more...' : 'Load More'}
-                        </button>
+                    <div className="px-6 py-3">
+                        <input type="text" placeholder="Search" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full rounded-[14px] py-2 px-4 outline-none bg-[#333] text-white placeholder-gray-400" />
                     </div>
-                )}
-                {contents.map(content => {
-                    return (
-                        <MessageItem
-                            key={content._id}
-                            content={content}
-                            memberProfile={content.senderId.profile}
-                            memberName={content.senderId.name}
-                            user={user}
-                            socket={socket}
-                            roomId={selectedRoom._id}
-                        />
-                    );
-                })}
-            </main>
-            )}
-            
-            {!isMemberListOpen && isMember && (
-            <section className="p-4 bg-[#313131] text-black rounded-[20px]">
-                <div className={`flex items-center  justify-between text-white gap-x-5 relative`}>
-
-                    <div className={`flex-1 outline-none rounded-[20px] flex flex-row gap-3 z-10 relative`} >
-
-                        {selectedImage && (
-                            <div className='bg-black/90 absolute w-full pb-10 p-5 left-0 bottom-16 z-[-1] flex justify-center items-center rounded-lg rounded-b-none '>
-                                {!isSendingImage && (
-                                    <div
-                                        onClick={() => setSelectedImage(null)}
-                                        diable={true}
-                                        className='top-0 right-0 font-bold absolute p-8 text-2xl hover:bg-gray-500/40  cursor-pointer rounded-lg w-10 h-10 flex justify-center items-center'>
-                                        X</div>
-                                )}
-                                <ImageUploader
-                                    type="message-image"
-                                    profile={preview}
-                                    isUploading={isSendingImage}
-                                    setIsUploading={setIsSendingImage}
-                                    setSelectedImage={setSelectedImage}
-                                    selectedImage={selectedImage}
-                                    setUrlFirebase={setUrlFirebase}
-                                    roomId={selectedRoom._id}
-                                    setIsSendingImageSuccess={setIsSendingImageSuccess}
-
-                                />
-
-                            </div>
+                    <div className="flex-1 overflow-y-auto space-y-3 p-6 scrollbar">
+                        {filteredMembers.length > 0 ? (
+                            filteredMembers.map((m) => (
+                                <div key={m._id} className="flex items-center gap-3 p-3 bg-[#333] rounded-lg hover:bg-[#444] transition">
+                                    <img src={m.profile || "https://i.postimg.cc/XNcYzq3V/user.png"} alt={m.name} className="w-12 h-12 rounded-full object-cover bg-white" />
+                                    <div>
+                                        <p className="text-lg font-semibold">{m.name}</p>
+                                        <p className="text-sm text-gray-400">{m.email || "Member"}</p>
+                                    </div>
+                                </div>
+                            ))
+                        ) : (
+                            <p className="text-center text-gray-400 mt-10">No members found</p>
                         )}
-
-                        {/* input */}
-                        <div className='flex-1 flex flex-row'>
-                            <label className={`hover:text-blue-500 cursor-pointer flex  items-center bg-${mainColor} h-full px-4 rounded-[20px] rounded-r-none`} htmlFor="image">
-                                <HiPaperClip size={24} />
-                                <input
-                                    id="image"
-                                    type="file"
-                                    className="hidden"
-                                    onChange={handleFileChange}
-                                    accept=".png, .jpg, .jpeg, .webp, .gif"
-                                />
-                            </label>
-
-                            <input
-                                type="text"
-                                placeholder="Enter Your Message"
-                                className={`outline-none rounded-[20px] rounded-l-none relative text-lg bg-${mainColor} flex-1 py-6 px-5`}
-                                value={message}
-                                onKeyDown={(e) => {
-                                    if (e.key === "Enter") {
-                                        sendUserContent(selectedRoom._id, message, "text");
-                                    }
-                                }}
-                                onChange={(e) => setMessage(e.target.value)}
-                            />
-                        </div>
-
-
                     </div>
-
-                    <Microphone setMessage={setMessage} />
-
+                    <div className="p-6">
+                        <button onClick={() => setIsMemberListOpen(false)} className="w-full bg-[#FF9A00] py-3 rounded-lg text-white font-bold hover:bg-orange-500">Close</button>
+                    </div>
                 </div>
-            </section>)}
+            )}
 
+            {/* Main Content Area */}
+            {isMember ? (
+                <main className="p-6 space-y-4 overflow-y-auto h-full" ref={messagesEndRef}>
+                    {hasNextPage && (
+                        <div className="text-center">
+                            <button onClick={() => fetchNextPage()} disabled={isFetchingNextPage} className="bg-gray-700 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-600 disabled:bg-gray-800">
+                                {isFetchingNextPage ? 'Loading more...' : 'Load More'}
+                            </button>
+                        </div>
+                    )}
+                    {contents.map(content => (
+                        <MessageItem key={content._id} content={content} memberProfile={content.senderId.profile} memberName={content.senderId.name} user={user} socket={socket} roomId={selectedRoom._id} />
+                    ))}
+                </main>
+            ) : (
+                <div className="flex-1 flex flex-col justify-center items-center text-center p-4">
+                    <h3 className="text-xl mb-2">You are not a member of this group.</h3>
+                    <p className="text-gray-400">Join to see the conversation and send messages.</p>
+                </div>
+            )}
+
+            {/* Bottom Bar */}
+            {isMember ? (
+                <section className="p-4 bg-[#313131] text-black rounded-[20px]">
+                    <div className={`flex items-center  justify-between text-white gap-x-5 relative`}>
+                        <div className={`flex-1 outline-none rounded-[20px] flex flex-row gap-3 z-10 relative`} >
+                            {selectedImage && (
+                                <div className='bg-black/90 absolute w-full pb-10 p-5 left-0 bottom-16 z-[-1] flex justify-center items-center rounded-lg rounded-b-none '>
+                                    {!isSendingImage && (
+                                        <div onClick={() => setSelectedImage(null)} diable={true} className='top-0 right-0 font-bold absolute p-8 text-2xl hover:bg-gray-500/40  cursor-pointer rounded-lg w-10 h-10 flex justify-center items-center'>X</div>
+                                    )}
+                                    <ImageUploader type="message-image" profile={preview} isUploading={isSendingImage} setIsUploading={setIsSendingImage} setSelectedImage={setSelectedImage} selectedImage={selectedImage} setUrlFirebase={setUrlFirebase} roomId={selectedRoom._id} setIsSendingImageSuccess={setIsSendingImageSuccess} />
+                                </div>
+                            )}
+                            <div className='flex-1 flex flex-row'>
+                                <label className={`hover:text-blue-500 cursor-pointer flex  items-center bg-${mainColor} h-full px-4 rounded-[20px] rounded-r-none`} htmlFor="image">
+                                    <HiPaperClip size={24} />
+                                    <input id="image" type="file" className="hidden" onChange={handleFileChange} accept=".png, .jpg, .jpeg, .webp, .gif" />
+                                </label>
+                                <input type="text" placeholder="Enter Your Message" className={`outline-none rounded-[20px] rounded-l-none relative text-lg bg-${mainColor} flex-1 py-6 px-5`} value={message} onKeyDown={(e) => { if (e.key === "Enter") { sendUserContent(selectedRoom._id, message, "text"); } }} onChange={(e) => setMessage(e.target.value)} />
+                            </div>
+                        </div>
+                        <Microphone setMessage={setMessage} />
+                    </div>
+                </section>
+            ) : (
+                <section className="p-4 bg-[#313131] text-black rounded-[20px]">
+                    <button className={`w-full bg-orange-400 hover:bg-orange-300 text-white font-bold py-4 px-4 rounded-3xl text-xl`} onClick={handleJoinRoom}>
+                        Join Group
+                    </button>
+                </section>
+            )}
         </div>
     );
 }
