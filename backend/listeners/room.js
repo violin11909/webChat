@@ -11,6 +11,9 @@ const roomSocketHandler = (io, socket, userIdToSocketIdMap) => {
         socket.leave(roomId);
         console.log(`User '${socket.data.user.name}' left room '${roomId}'`);
     });
+    socket.on('member-joined', (data) => {
+        socket.to(data.roomId).emit('member-joined', data);
+    });
     socket.on('create-room', async (data) => {
         try {
             const createdRoom = await createRoom(data);

@@ -181,16 +181,61 @@ function ChatMessage({ selectedRoom, setSelectedRoom, isUploading, setIsUploadin
         sendUserContent(selectedRoom._id, urlFirebase, "image")
     }, [isSendingImageSuccess]);
 
+    const handleMemberJoined = (data) => {
+        if (data.roomId === selectedRoom._id) {
+            setSelectedRoom((prevRoom) => {
+                const isMemberExist = prevRoom.member.some(m => m._id === data.newMember._id);     
+                if (!isMemberExist) {
+                    return {
+                        ...prevRoom,
+                        member: [...prevRoom.member, data.newMember]
+                    };
+                }
+                return prevRoom;
+            });
+        }
+        queryClient.setQueryData(['rooms'], (oldRooms) => {
+            if (!oldRooms) return oldRooms;
+            return oldRooms.map(room => {
+                if (room._id === data.roomId) {
+                    const isMemberExist = room.member.some(m => m._id === data.newMember._id);
+                    if (!isMemberExist) {
+                        return {
+                            ...room,
+                            member: [...room.member, data.newMember]
+                        };
+                    }
+                }
+                return room;
+            });
+        });
+    };
+    
+    useEffect(() => {
+        if (!selectedRoom || !selectedRoom._id) return;
+        socket.on('member-joined', handleMemberJoined);
+        return () => {
+            socket.off('member-joined', handleMemberJoined);
+        };
+    }, [queryClient, selectedRoom._id, setSelectedRoom]);
+
     const handleJoinRoom = async () => {
         const res = await joinRoom(selectedRoom._id, user._id);
         if (res) {
             await queryClient.invalidateQueries({ queryKey: ['rooms'] });
             setSelectedRoom(res);
-            setIsMember(true)
+            socket.emit("member-joined", {
+                roomId: res._id,
+                newMember: {
+                    _id: user._id,
+                    name: user.name,
+                    profile: user.profile,
+                    email: user.email
+                }
+            });
             socket.emit("join-room", res._id);
             return;
         }
-        setIsMember(false)
     }
 
     const messagesEndRef = useRef(null);
