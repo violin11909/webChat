@@ -10,7 +10,7 @@ export const setupEventListeners = (socket) => {
     });
 
     socket.on("error-message", (msg) => {
-        alert(error);
+        alert(msg);
     });
 
     socket.on("success-message", (msg) => {

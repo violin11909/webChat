@@ -21,7 +21,7 @@ function initSocket(server) {
     io.on('connection', (socket) => {
         userSocketHandler(io, socket, onlineUsers, userIdToSocketIdMap);
         chatSocketHandler(io, socket);
-        roomSocketHandler(io, socket);
+        roomSocketHandler(io, socket, userIdToSocketIdMap);
     });
     console.log("Socket.IO is working!");
     return io;

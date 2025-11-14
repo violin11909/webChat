@@ -1,6 +1,6 @@
 const { createRoom } = require("../controllers/room");
 
-const roomSocketHandler = (io, socket) => {
+const roomSocketHandler = (io, socket, userIdToSocketIdMap) => {
     // Join a room
     socket.on('join-room', (roomId) => {
         socket.join(roomId);
