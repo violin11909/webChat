@@ -1,6 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
-import EditProfilePane from '../../pages/chat/EditProfilePane';
+import EditProfilePane from '../../pages/edit/EditProfilePane';
 import { useUI } from '../../contexts/UIContext';
 
 function MainLayout() {

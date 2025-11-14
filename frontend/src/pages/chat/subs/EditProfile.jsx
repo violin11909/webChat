@@ -1,9 +1,9 @@
-import ImageUploader from '../../components/ImageUploader';
+import ImageUploader from '../../../components/common/ImageUploader';
 
 const EditProfile = ({ type, setOnChangProfile, profile, roomId, userId, setSelectedRoom, isUploading, setIsUploading}) => {
 
     return (
-        <div className="absolute inset-0 backdrop-blur-xs bg-black/70 w-full h-full flex justify-center items-center rounded-lg">
+        <div className="absolute inset-0 z-[9999] backdrop-blur-xs bg-black/70 w-full h-full flex justify-center items-center rounded-lg">
             {!isUploading && (
                 <div
                     onClick={() => setOnChangProfile(false)}

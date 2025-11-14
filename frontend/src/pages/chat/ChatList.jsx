@@ -1,7 +1,7 @@
 import { useMemo, useState, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { ChatItem } from "./ChatItem";
-import { UserItem } from "./UserItem";
+import { ChatItem } from "./items/ChatItem";
+import { UserItem } from "./items/UserItem";
 import { useQueryData } from "../../contexts/QueryContext";
 import { useAuth } from "../../contexts/AuthContext";
 

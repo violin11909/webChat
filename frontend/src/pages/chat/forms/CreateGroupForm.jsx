@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { socket } from "../../listeners/socketClient";
-import { useAuth } from "../../contexts/AuthContext";
+import { socket } from "../../../listeners/socketClient";
+import { useAuth } from "../../../contexts/AuthContext";
 
 function CreateGroupForm({ setIsCreatingGroup, setSelectedRoom }) {
   const queryClient = useQueryClient();

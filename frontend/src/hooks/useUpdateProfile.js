@@ -40,36 +40,8 @@ export const useUpdateRoomProfile = () => {
 };
 
 export const useUpdateUserProfile = () => {
-    const queryClient = useQueryClient();
-    const { setUser } = useAuth();
-
     return useMutation({
         mutationFn: ({ userId, name, filePath }) => updateUserProfile({ userId, name, filePath }),
-        onMutate: async ({ name, filePath }) => {
-            await queryClient.cancelQueries({ queryKey: ['user'] });
-
-            const previousUserData = queryClient.getQueryData(['user']);
-            
-            const newUserData = { ...previousUserData };
-            if (name) newUserData.name = name;
-            if (filePath) newUserData.profile = filePath;
-
-            queryClient.setQueryData(['user'], newUserData);
-            setUser(newUserData); 
-
-            return { previousUserData };
-        },
-        onError: (err, variables, context) => {
-            if (context?.previousUserData) {
-                queryClient.setQueryData(['user'], context.previousUserData);
-                setUser(context.previousUserData); 
-            }
-        },
-        onSuccess: (updatedUser) => {
-            if (!updatedUser) return;
-            queryClient.setQueryData(['user'], updatedUser);
-            setUser(updatedUser);
-        },
     });
 };
 

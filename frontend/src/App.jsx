@@ -1,15 +1,13 @@
 
 import ChatMessage from './pages/chat/ChatMessage';
 import ChatList from './pages/chat/ChatList';
-import CreateGroupForm from './pages/chat/CreateGroupForm';
+import CreateGroupForm from './pages/chat/forms/CreateGroupForm';
 import { useState } from 'react';
 
 import { useQueryData } from './contexts/QueryContext';
 import { useQuery } from "@tanstack/react-query";
-import { getRooms } from './service/roomService';
 import { getUsers } from './service/userService';
 import { useAuth } from './contexts/AuthContext';
-import EditProfilePane from './pages/chat/EditProfilePane';
 
 function App() {
   const { rooms } = useQueryData();

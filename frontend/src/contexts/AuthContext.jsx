@@ -3,12 +3,14 @@ import Cookies from "js-cookie";
 import { getMe } from "../service/userService";
 import { connectSocket, disconnectSocket } from "../listeners/socketClient";
 import { setupEventListeners } from "../listeners/eventListener";
+import { useQueryClient } from "@tanstack/react-query";
 
 const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [listenersSetUp, setListenersSetUp] = useState(false);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -20,7 +22,7 @@ export const AuthProvider = ({ children }) => {
             setUser(me);
             const socket = connectSocket();
             if (socket && !listenersSetUp) {
-              setupEventListeners(socket);
+              setupEventListeners(socket, queryClient);
               setListenersSetUp(true);
             }
           }
@@ -39,7 +41,7 @@ export const AuthProvider = ({ children }) => {
       setUser(me);
       const socket = connectSocket();
       if (socket && !listenersSetUp) {
-        setupEventListeners(socket);
+        setupEventListeners(socket, queryClient);
         setListenersSetUp(true);
       }
     }
@@ -52,7 +54,11 @@ export const AuthProvider = ({ children }) => {
     setListenersSetUp(false);
   };
 
-  const value = { user, login, logout, setUser };
+  const updateUser = (newUserData) => {
+    setUser(prevUser => ({ ...prevUser, ...newUserData }));
+  };
+
+  const value = { user, login, logout, setUser, updateUser };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
