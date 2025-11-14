@@ -5,9 +5,12 @@ import CreateGroupForm from './pages/chat/forms/CreateGroupForm';
 import { useState } from 'react';
 
 import { useQueryData } from './contexts/QueryContext';
-import { useQuery } from "@tanstack/react-query";
-import { getUsers } from './service/userService';
 import { useAuth } from './contexts/AuthContext';
+import { useQueryClient } from '@tanstack/react-query';
+import { socket } from './listeners/socketClient';
+import { useEffect } from 'react';
+
+
 
 function App() {
   const { rooms } = useQueryData();
@@ -16,14 +19,26 @@ function App() {
   const [onChangProfile, setOnChangProfile] = useState(false);
   const [isCreatingGroup, setIsCreatingGroup] = useState(false);
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
+  const queryClient = useQueryClient();
 
   const { user: currentUser } = useAuth();
-
-  const { data: users, isLoading: isAllUsersLoading } = useQuery({
-    queryKey: ['users'], queryFn: () => getUsers(), enabled: !!currentUser,
-  });
-
+  const { users } = useQueryData();
   const otherUsers = users?.filter(user => user._id !== currentUser?._id);
+
+  useEffect(() => {
+    const handleUpdateOnlineUsers = (updatedOnlineUsers) => {
+      console.log(updatedOnlineUsers)
+      queryClient.setQueryData(['online-users'], (onlineUsers) => {
+        return updatedOnlineUsers;
+      });
+    };
+
+    socket.on('update-online-users', handleUpdateOnlineUsers);
+
+    return () => {
+      socket.off('update-online-users', handleUpdateOnlineUsers);
+    };
+  }, []);
 
   return (
     <>

@@ -2,25 +2,28 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { socket } from '../../listeners/socketClient';
+import { useQueryClient } from '@tanstack/react-query';
+import { useQueryData } from '../../contexts/QueryContext';
 
 function Home() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const [onlineUsers, setOnlineUsers] = useState([]);
+  const queryClient = useQueryClient();
+  const { onlineUsers } = useQueryData();
 
   useEffect(() => {
-    const handleUpdateOnlineUsers = (users) => {
-      setOnlineUsers(users);
+    const handleUpdateOnlineUsers = (updatedOnlineUsers) => {
+      console.log(updatedOnlineUsers)
+      queryClient.setQueryData(['online-users'], updatedOnlineUsers);
     };
 
     socket.on('update-online-users', handleUpdateOnlineUsers);
-
     socket.emit('get-online-users');
 
     return () => {
       socket.off('update-online-users', handleUpdateOnlineUsers);
     };
-  }, []); 
+  }, []);
 
   return (
     <div className="flex flex-col flex-1 bg-[#313131] text-white rounded-[20px] shadow-lg p-6">
