@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { upload } from '../service/uploadService';
-import { useUpdateRoomProfile } from '../hooks/useUpdateProfile';
-import { useAuth } from '../contexts/AuthContext';
-import { updateUserProfile } from '../service/userService';
+import { upload } from '../../service/uploadService';
+import { useUpdateRoomProfile } from '../../hooks/useUpdateProfile';
+import { useAuth } from '../../contexts/AuthContext';
+import { updateUserProfile } from '../../service/userService';
 
 
 const ImageUploader = ({ type, profile, roomId, isUploading, setIsUploading, setOnChangProfile, setSelectedRoom, setSelectedImage, selectedImage, setUrlFirebase, setIsSendingImageSuccess }) => {
@@ -102,7 +102,6 @@ const ImageUploader = ({ type, profile, roomId, isUploading, setIsUploading, set
                     />
                 </div>
 
-
                 <label
                     htmlFor="profile-upload"
                     className={`absolute inset-0 backdrop-blur-xs bg-black/70 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity duration-300 cursor-pointer ${type == "message-image" ? "rounded-md" : "rounded-full"}`}
@@ -132,10 +131,6 @@ const ImageUploader = ({ type, profile, roomId, isUploading, setIsUploading, set
             {isUploading && (
                 <p className='text-white'>{onProgress}</p>
             )}
-
-
-
-
         </div>
 
 

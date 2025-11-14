@@ -1,23 +1,34 @@
 import { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import ImageUploader from '../../components/ImageUploader';
+import ImageUploader from '../../components/common/ImageUploader';
 import { useUpdateUserProfile } from '../../hooks/useUpdateProfile';
 import { useUI } from '../../contexts/UIContext';
 
 function EditProfilePane() {
-    const { user } = useAuth();
+    const { user, updateUser } = useAuth();
     const { setIsEditingProfile } = useUI();
     const [name, setName] = useState(user.name);
     const [isUploading, setIsUploading] = useState(false);
     const updateUserMutation = useUpdateUserProfile();
+    const [errorMessage, setErrorMessage] = useState("");
 
     const handleSaveName = () => {
         if (name.trim() === '' || name === user.name) return;
+
+        setErrorMessage(""); 
+
         updateUserMutation.mutate(
             { userId: user._id, name: name.trim() },
             {
-                onSuccess: () => {
-                    alert("Name updated successfully!");
+                onSuccess: (data) => {
+                    setErrorMessage("");
+                    updateUser(data);
+                    setIsEditingProfile(false)
+                    window.location.reload()
+                },
+                onError: (error) => {
+                    const msg = error?.response?.data?.message || "Failed to update name.";
+                    setErrorMessage(msg);
                 }
             }
         );
@@ -66,6 +77,9 @@ function EditProfilePane() {
                             {updateUserMutation.isPending ? 'Saving...' : 'Save'}
                         </button>
                     </div>
+                    {errorMessage && (
+                        <p className="text-red-400 text-sm mt-1">{errorMessage}</p>
+                    )}
                 </div>
             </div>
 

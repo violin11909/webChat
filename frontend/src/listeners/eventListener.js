@@ -1,6 +1,6 @@
 import { useSaveContent } from '../hooks/useSaveContent';
 
-export const setupEventListeners = (socket) => {
+export const setupEventListeners = (socket, queryClient) => {
     socket.on("connect", () => {
         console.log('✅ Connected to server!')
     });
@@ -19,5 +19,12 @@ export const setupEventListeners = (socket) => {
 
     socket.on("receive-message", (msg) => {
         console.log(msg)
+    });
+
+    socket.on("new-room", (newRoom) => {
+        queryClient.setQueryData(['rooms'], (oldData) => {
+            if (!oldData) return [newRoom];
+            return [...oldData, newRoom];
+        });
     });
 }

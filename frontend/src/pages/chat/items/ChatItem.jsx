@@ -1,5 +1,5 @@
 
-import { socket } from '../../listeners/socketClient';
+import { socket } from '../../../listeners/socketClient';
 
 export function ChatItem({ room, setSelectedRoom, selectedRoom, setOnChangProfile, setSelectedUser }) {
 

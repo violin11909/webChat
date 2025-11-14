@@ -8,7 +8,6 @@ exports.updateUserProfile = async (req, res) => {
         if (!user) {
             return res.status(404).json({ message: 'User not found' });
         }
-
         const updateData = {};
         if (name) updateData.name = name;
         if (filePath) updateData.profile = filePath;
@@ -22,6 +21,9 @@ exports.updateUserProfile = async (req, res) => {
 
     } catch (err) {
         console.error(err.message)
+        if (err.code === 11000) {
+            return res.status(400).json({ message: "This name is already taken." });
+        }
         res.status(500).json({ message: "Server error", error: err.message });
     }
 }
