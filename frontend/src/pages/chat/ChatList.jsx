@@ -13,7 +13,7 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
   const [selectedUser, setSelectedUser] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(""); 
   const tabs = ["All", "Groups", "Private"]
-  const { rooms } = useQueryData();
+  const { rooms, onlineUsers } = useQueryData();
   const { user } = useAuth();
 
   const groupRooms = useMemo(() => {
@@ -79,6 +79,9 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
   const filteredUsers = users.filter((u) =>
     u.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const isUserOnline = (userId) =>{
+    return  onlineUsers.some(u => u._id == userId)
+  }
 
   return (
     <div className="min-w-60 bg-[#313131] rounded-[20px] shadow-lg relative flex flex-col">
@@ -145,7 +148,7 @@ function ChatList({ selectedRoom, setSelectedRoom, users, currentUser, isUploadi
                   user={u}
                   onSelectUser={handleSelectUser}
                   isSelected={selectedUser?._id === u._id}
-                  currentUser={currentUser}
+                  isOnline={isUserOnline(u._id)}
                 />
               ))}
             </div>
