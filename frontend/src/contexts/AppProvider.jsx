@@ -4,12 +4,12 @@ import { UIProvider } from "./UIContext.jsx";
 
 export function AppProvider({ children }) {
   return (
-    <QueryProvider>
-      <AuthProvider>
+    <AuthProvider>
+      <QueryProvider>
         <UIProvider>
           {children}
         </UIProvider>
-      </AuthProvider>
-    </QueryProvider>
+      </QueryProvider>
+    </AuthProvider>
   );
 }
