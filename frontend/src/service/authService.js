@@ -21,3 +21,14 @@ export const login = async (userData) => {
     }
 };  
         
+export const logout = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/api/v1/auth/logout`, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error logging out:', error);
+    throw new Error('Logout failed');
+  }
+};

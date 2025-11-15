@@ -61,12 +61,15 @@ const sendTokenResponse = (user, statusCode, res) => {
     const token = user.getSignedJwtToken();
     const options = {
         expires: new Date(Date.now() + process.env.JWT_COOKIE_EXPIRE * 24 * 60 * 60 * 1000),
-        httpOnly: false,
-        secure: true,
-        sameSite: 'None'
+        httpOnly: true,
+        credentials: true
     };
-    if (process.env.NODE_ENV === 'production') {
-        options.secure = true;
+if (process.env.NODE_ENV === 'production') {
+        options.secure = true;  
+        options.sameSite = 'None'; 
+    } else {
+        options.secure = false;
+        options.sameSite = 'Lax'; 
     }
     res.status(statusCode).cookie('token',token,options).json({
         success: true,
@@ -75,7 +78,7 @@ const sendTokenResponse = (user, statusCode, res) => {
         name: user.name,
         username: user.username,
         //end for frontend
-        token
+        // token
     })
 }
 
@@ -98,3 +101,26 @@ exports.getMe = async (req, res, next) => {
         data: user
     })
 }
+
+// @desc    Log user out / clear cookie
+// @route   GET /api/v1/auth/logout
+// @access  Private 
+exports.logout = (req, res, next) => {
+  const options = {
+    httpOnly: true,
+    path: '/', 
+  };
+
+  if (process.env.NODE_ENV === 'production') {
+    options.secure = true;
+    options.sameSite = 'None';
+  } else {
+    options.secure = false;
+    options.sameSite = 'Lax';
+  }
+
+  res.status(200).clearCookie('token', options).json({
+    success: true,
+    data: {}, 
+  });
+};

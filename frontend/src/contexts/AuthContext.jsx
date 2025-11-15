@@ -1,9 +1,10 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import Cookies from "js-cookie";
+// import Cookies from "js-cookie";
 import { getMe } from "../service/userService";
 import { connectSocket, disconnectSocket } from "../listeners/socketClient";
 import { setupEventListeners } from "../listeners/eventListener";
 import { useQueryClient } from "@tanstack/react-query";
+import { logout as logoutService } from "../service/authService";
 
 const AuthContext = createContext();
 
@@ -14,8 +15,8 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const token = Cookies.get("token");
-      if (token) {
+      // const token = Cookies.get("token");
+      // if (token) {
         try {
           const me = await getMe();
           if (me) {
@@ -27,15 +28,15 @@ export const AuthProvider = ({ children }) => {
             }
           }
         } catch (error) {
-          Cookies.remove("token");
+          // Cookies.remove("token");
         }
-      }
+      // }
     };
     fetchUser();
   }, []);
 
   const login = async (token) => {
-    Cookies.set("token", token);
+    // Cookies.set("token", token);
     const me = await getMe();
     if (me) {
       setUser(me);
@@ -47,8 +48,13 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const logout = () => {
-    Cookies.remove("token");
+  const logout = async () => {
+    // Cookies.remove("token");
+    try {
+      await logoutService();
+    } catch (err) {
+      console.error("Logout API call failed", err);
+    }
     setUser(null);
     disconnectSocket();
     setListenersSetUp(false);

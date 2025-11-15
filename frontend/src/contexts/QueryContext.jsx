@@ -8,8 +8,9 @@ import { useAuth } from "./AuthContext";
 const QueryContext = createContext();
 
 export const QueryProvider = ({ children }) => {
-    const { data: rooms } = useQuery({ queryKey: ['rooms'], queryFn: () => getRooms(), enabled: true, });
-    const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getUsers(), enabled: true });
+    const { user } = useAuth();
+    const { data: rooms } = useQuery({ queryKey: ['rooms'], queryFn: () => getRooms(), enabled: !!user, });
+    const { data: users } = useQuery({ queryKey: ['users'], queryFn: () => getUsers(), enabled: !!user });
     const { data: onlineUsers } = useQuery({
         queryKey: ['online-users'], queryFn: () => [],
         enabled: true,
